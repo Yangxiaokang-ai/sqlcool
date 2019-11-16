@@ -1,4 +1,4 @@
-package com.github.dakuohao;
+package com.github.dakuohao.bean;
 
 import java.util.LinkedHashMap;
 
