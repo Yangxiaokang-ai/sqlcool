@@ -10,6 +10,7 @@ import java.util.List;
 
 /**
  * 数据库操作工具 简化开发，解放生产力
+ * @author Peng 1029538990@qq.com
  */
 public interface Db {
 
@@ -31,7 +32,7 @@ public interface Db {
      * @return ResultSet
      * @see ResultSet
      */
-    ResultSet executeUpdate(String sql, Object... params);
+    int executeUpdate(String sql, Object... params);
 
     /**
      * 添加

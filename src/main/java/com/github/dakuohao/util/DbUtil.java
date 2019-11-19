@@ -1,39 +1,37 @@
 package com.github.dakuohao.util;
 
-import com.github.dakuohao.exeption.DbRuntimeException;
+import com.github.dakuohao.bean.Entity;
+import com.github.dakuohao.ds.DataSourceFactory;
+import com.github.dakuohao.ds.DruidDataSourceFactory;
 
-import java.io.IOException;
-import java.io.InputStream;
+import javax.sql.DataSource;
 import java.sql.*;
-import java.util.Properties;
 
 /**
  * Db用到的所有工具类方法
+ *
+ * @author Peng 1029538990@qq.com
  */
 public class DbUtil {
-    private static String driverClassName;
-    private static String url;
-    private static String username;
-    private static String password;
-    /**
-     * 配置文件
-     */
-    private static Properties properties;
 
-    //类加载时 初始化配置文件
-    static {
-        properties = new Properties();
-        try {
-            //加载资源文件
-            InputStream in = Thread.currentThread().getContextClassLoader().getResourceAsStream("db.properties");
-            properties.load(in);
-            driverClassName = properties.getProperty("db.jdbc.driverClassName");
-            url = properties.getProperty("db.jdbc.url");
-            username = properties.getProperty("db.jdbc.username");
-            password = properties.getProperty("db.jdbc.password");
-        } catch (IOException e) {
-            DbUtil.throwDbRuntimeException(e, "初始化配置文件报错，请检测配置文件");
-        }
+    /**
+     * 获取DataSourceFactory
+     *
+     * @return DataSourceFactory
+     */
+    private static DataSourceFactory getDataSourceFactory() {
+        //todo 后期增加其他数据库连接池支持
+        return new DruidDataSourceFactory();
+    }
+
+
+    /**
+     * 获取数据源
+     *
+     * @return DataSource
+     */
+    public static DataSource getDataSource() {
+        return getDataSourceFactory().getDataSource();
     }
 
     /**
@@ -44,18 +42,53 @@ public class DbUtil {
     public static Connection getConnection() {
         Connection conn = null;
         try {
-            //加载数据库驱动
-            Class.forName(driverClassName);
-            //获取数据库连接
-            conn = DriverManager.getConnection(url, username, password);
-        } catch (ClassNotFoundException e) {
-            throwDbRuntimeException(e, "ClassNotFoundException：未找到数据库驱动");
+            conn = getDataSource().getConnection();
         } catch (SQLException e) {
-            throwDbRuntimeException(e, "SQLException：获取数据库连接失败");
+            ExceptionUtil.throwDbRuntimeException(e, "SQLException：获取数据库连接失败");
         }
         return conn;
     }
 
+    /**
+     * 获取数据库连接,不使用数据源（数据库连接池）
+     *
+     * @param noUseDataSource 不使用数据源（数据库连接池）
+     * @return Connection
+     */
+    public static Connection getConnection(boolean noUseDataSource) {
+        Connection conn = null;
+        try {
+            //加载数据库驱动
+            Class.forName(PropertiesUtil.getDriverClassName());
+            //获取数据库连接
+            conn = DriverManager.getConnection(PropertiesUtil.getUrl(), PropertiesUtil.getUsername(), PropertiesUtil.getPassword());
+        } catch (ClassNotFoundException e) {
+            ExceptionUtil.throwDbRuntimeException(e, "ClassNotFoundException：未找到数据库驱动");
+        } catch (SQLException e) {
+            ExceptionUtil.throwDbRuntimeException(e, "SQLException：获取数据库连接失败");
+        }
+        return conn;
+    }
+
+    /**
+     * 获取数据库连接
+     *
+     * @return Connection
+     */
+    public static PreparedStatement getPreparedStatement(String sql, Object... params) {
+        PreparedStatement preparedStatement = null;
+        try {
+            preparedStatement = getConnection().prepareStatement(sql);
+            if (null != params && params.length > 0) {
+                for (int i = 0; i < params.length; i++) {
+                    preparedStatement.setObject(i + 1, params[i]);
+                }
+            }
+        } catch (SQLException e) {
+            ExceptionUtil.throwDbRuntimeException(e, "SQLException：获取PreparedStatement失败");
+        }
+        return preparedStatement;
+    }
 
     //---关闭资源---
 
@@ -91,39 +124,24 @@ public class DbUtil {
                 rs.close();
             }
         } catch (SQLException e) {
-            DbUtil.throwDbRuntimeException(e, "SQLException：关闭ResultSet时发生异常");
+            ExceptionUtil.throwDbRuntimeException(e, "SQLException：关闭ResultSet时发生异常");
         } finally {
             try {
                 if (ps != null) {
                     ps.close();
                 }
             } catch (SQLException e) {
-                DbUtil.throwDbRuntimeException(e, "SQLException：关闭Statement时发生异常");
+                ExceptionUtil.throwDbRuntimeException(e, "SQLException：关闭Statement时发生异常");
             } finally {
                 try {
                     if (conn != null) {
                         conn.close();
                     }
                 } catch (SQLException e) {
-                    DbUtil.throwDbRuntimeException(e, "SQLException：关闭Connection时发生异常");
+                    ExceptionUtil.throwDbRuntimeException(e, "SQLException：关闭Connection时发生异常");
                 }
             }
         }
-    }
-
-
-    //-- 异常处理---
-
-    /**
-     * 抛出DbRuntimeException
-     *
-     * @param exception 异常对象
-     * @param message   提示信息
-     * @see DbRuntimeException
-     */
-    public static void throwDbRuntimeException(Exception exception, String message) {
-        exception.printStackTrace();
-        throw new DbRuntimeException(message);
     }
 
 }

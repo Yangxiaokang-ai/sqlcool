@@ -5,8 +5,10 @@ import java.util.LinkedHashMap;
 /**
  * 封装统一的实体对象
  * 对应JavaBean
+ *
+ * @author Peng 1029538990@qq.com
  */
-public class Entity extends LinkedHashMap {
+public class Entity extends LinkedHashMap<String, Object> {
 
 
     /**
@@ -42,8 +44,7 @@ public class Entity extends LinkedHashMap {
      * @param value 字段值
      * @return 字段值
      */
-    @SuppressWarnings("unchecked")
-    public Object set(Object key, Object value) {
+    public Object set(String key, Object value) {
         return put(key, value);
     }
 
