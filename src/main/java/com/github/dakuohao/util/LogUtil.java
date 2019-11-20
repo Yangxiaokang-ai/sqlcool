@@ -21,11 +21,19 @@ public class LogUtil {
      * @param params 参数
      */
     public static void log(String sql, Object... params) {
-        //替换?为{}
-        sql = sql.replaceAll("\\?", "{}");
         LOG.debug("原SQL： " + sql);
         if (ArrayUtil.isNotEmpty(params)) {
             LOG.debug("参数： " + ArrayUtil.toString(params));
+        }
+        //替换?为{}
+        sql = sql.replaceAll("\\?", "{}");
+        //如果是字符串时，给参数拼接 单引号''
+        //示例：INSERT INTO `test`.`user` (`name`, `age`) VALUES ('测试002', 19);
+        for (int i = 0; i < params.length; i++) {
+            Object param = params[i];
+            if (param instanceof CharSequence) {
+                params[i] = "'" + param + "'";
+            }
         }
         LOG.debug("执行sql： " + sql, params);
     }

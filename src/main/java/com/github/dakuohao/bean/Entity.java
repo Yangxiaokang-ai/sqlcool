@@ -9,7 +9,19 @@ import java.util.LinkedHashMap;
  * @author Peng 1029538990@qq.com
  */
 public class Entity extends LinkedHashMap<String, Object> {
+    private String tableName;
 
+    public Entity(String tableName) {
+        this.tableName = tableName;
+    }
+
+    public String getTableName() {
+        return tableName;
+    }
+
+    public void setTableName(String tableName) {
+        this.tableName = tableName;
+    }
 
     /**
      * 获得特定类型值

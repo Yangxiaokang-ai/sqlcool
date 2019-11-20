@@ -10,6 +10,7 @@ import java.util.List;
 
 /**
  * 数据库操作工具 简化开发，解放生产力
+ *
  * @author Peng 1029538990@qq.com
  */
 public interface Db {
@@ -25,7 +26,7 @@ public interface Db {
     ResultSet executeQuery(String sql, Object... params);
 
     /**
-     * 执行修改语句 (INSERT,UPDATE,DELETE,CREATE,DROP等非查询操作)
+     * 执行修改语句 (INSERT,UPDATE,DELETE)
      *
      * @param sql    sql
      * @param params 参数
@@ -33,6 +34,15 @@ public interface Db {
      * @see ResultSet
      */
     int executeUpdate(String sql, Object... params);
+
+    /**
+     * 执行修改语句 (CREATE,DROP等)
+     *
+     * @param sql sql
+     * @return ResultSet
+     * @see ResultSet
+     */
+    Boolean execute(String sql);
 
     /**
      * 添加

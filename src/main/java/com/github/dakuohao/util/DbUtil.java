@@ -1,6 +1,5 @@
 package com.github.dakuohao.util;
 
-import com.github.dakuohao.bean.Entity;
 import com.github.dakuohao.ds.DataSourceFactory;
 import com.github.dakuohao.ds.DruidDataSourceFactory;
 
@@ -13,6 +12,7 @@ import java.sql.*;
  * @author Peng 1029538990@qq.com
  */
 public class DbUtil {
+    private static DataSourceFactory dataSourceFactory;
 
     /**
      * 获取DataSourceFactory
@@ -21,7 +21,10 @@ public class DbUtil {
      */
     private static DataSourceFactory getDataSourceFactory() {
         //todo 后期增加其他数据库连接池支持
-        return new DruidDataSourceFactory();
+        if (null == dataSourceFactory) {
+            dataSourceFactory = new DruidDataSourceFactory();
+        }
+        return dataSourceFactory;
     }
 
 
@@ -71,8 +74,10 @@ public class DbUtil {
     }
 
     /**
-     * 获取数据库连接
+     * 获取PreparedStatement
      *
+     * @param sql    sql
+     * @param params 参数
      * @return Connection
      */
     public static PreparedStatement getPreparedStatement(String sql, Object... params) {
@@ -90,6 +95,20 @@ public class DbUtil {
         return preparedStatement;
     }
 
+    /**
+     * 获取Statement
+     *
+     * @return Connection
+     */
+    public static Statement getStatement() {
+        Statement statement = null;
+        try {
+            statement = getConnection().createStatement();
+        } catch (SQLException e) {
+            ExceptionUtil.throwDbRuntimeException(e, "SQLException：获取PreparedStatement失败");
+        }
+        return statement;
+    }
     //---关闭资源---
 
     /**
