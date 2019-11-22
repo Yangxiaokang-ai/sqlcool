@@ -72,6 +72,7 @@ public interface DataBase {
 
     /**
      * 执行插入数据sql
+     * 如果数据库配置自动生成主键，那么会自动设置id字段为主键值
      *
      * @param entity 实体对象
      * @return 插入成功返回true，否则返回false
@@ -106,6 +107,7 @@ public interface DataBase {
             //获取一个类的 ==所有成员变量，不包括基类==
             Field field = this.getClass().getDeclaredField("id");
             field.setAccessible(true);
+            field.set(ConverterRegistry.getInstance().convert(field.getType(),) ,entity.getInt("id"));
             if (field.getType() == int.class) {
                 field.setInt(this, entity.getInt("id"));
             }
