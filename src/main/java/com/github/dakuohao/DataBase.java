@@ -4,7 +4,6 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.lang.func.VoidFunc1;
 import cn.hutool.core.util.StrUtil;
-import cn.hutool.db.Db;
 import cn.hutool.db.Entity;
 import cn.hutool.db.transaction.TransactionLevel;
 import com.github.dakuohao.bean.Page;
@@ -15,12 +14,13 @@ import java.util.List;
 
 /**
  * mysql操作工具类
+ * 实现该接口，表示赋予其操作数据库的能力
  *
  * @author Peng 1029538990@qq.com
  * @version 1.0
  * @date 2019/11/21 9:14
  */
-public class MySQL {
+public interface DataBase {
 
     /**
      * 执行查询sql
@@ -30,7 +30,7 @@ public class MySQL {
      * @return List<Entity> 默认返回null
      * @see Entity
      */
-    public List<Entity> executeQuery(String sql, Object... params) {
+    default List<Entity> executeQuery(String sql, Object... params) {
         List<Entity> list = null;
         try {
             list = getDb().query(sql, params);
@@ -47,7 +47,7 @@ public class MySQL {
      * @param params sql参数
      * @return int，数据库修改数据的行数，默认为0
      */
-    public int executeUpdate(String sql, Object... params) {
+    default int executeUpdate(String sql, Object... params) {
         int result = 0;
         try {
             result = getDb().execute(sql, params);
@@ -64,7 +64,7 @@ public class MySQL {
      * @param params 参数
      * @return 插入成功返回true，否则返回false
      */
-    public Boolean insert(String sql, Object... params) {
+    default Boolean insert(String sql, Object... params) {
         return executeUpdate(sql, params) > 0;
     }
 
@@ -74,7 +74,7 @@ public class MySQL {
      * @param entity 实体对象
      * @return 插入成功返回true，否则返回false
      */
-    public Boolean insert(Entity entity) {
+    default Boolean insert(Entity entity) {
         checkEntity(entity);
 
         int insert = 0;
@@ -89,19 +89,25 @@ public class MySQL {
     /**
      * 执行插入数据sql
      *
-     * @param bean bean对象
      * @return 插入成功返回true，否则返回false
      */
-    public Boolean insert(Object bean) {
-        if (bean instanceof Entity) {
-            return insert((Entity) bean);
-        }
+    default Boolean insert() {
         //object to bean
-        Entity entity = new Entity();
-        //todo 处理表名
+        Entity entity = new Entity(getTableName());
         //转化为下划线字段  忽略null值的字段
-        BeanUtil.beanToMap(bean, entity, true, true);
+        BeanUtil.beanToMap(this, entity, true, true);
         return insert(entity);
+    }
+
+    /**
+     * 获取表名
+     * 将驼峰式命名的类名转换为下划线方式返回
+     *
+     * @return String
+     */
+    default String getTableName() {
+        String name = this.getClass().getSimpleName();
+        return StrUtil.toUnderlineCase(name);
     }
 
     /**
@@ -111,7 +117,7 @@ public class MySQL {
      * @param params 参数
      * @return 删除成功返回true，失败返回false
      */
-    public Boolean delete(String sql, Object... params) {
+    default Boolean delete(String sql, Object... params) {
         return executeUpdate(sql, params) > 0;
     }
 
@@ -122,7 +128,7 @@ public class MySQL {
      * @param id        主键id
      * @return 删除成功返回true，失败返回false
      */
-    public Boolean deleteById(String tableName, Object id) {
+    default Boolean deleteById(String tableName, Object id) {
         String sql = "DELETE FROM " + tableName + " WHERE id =?";
         return delete(sql, id);
     }
@@ -134,17 +140,17 @@ public class MySQL {
      * @param params 参数
      * @return 修改成功返回true，否则返回false
      */
-    public Boolean update(String sql, Object... params) {
+    default Boolean update(String sql, Object... params) {
         return executeUpdate(sql, params) > 0;
     }
 
     /**
-     * 修改entity
+     * 通过id修改，字段不为空就修改，为空则不修改
      *
      * @param entity 实体对象
      * @return 修改成功返回true，否则返回false
      */
-    public Boolean updateById(Entity entity) {
+    default Boolean updateById(Entity entity) {
         checkEntity(entity);
 
         Entity where = Entity.create(entity.getTableName()).set("id", entity.get("id"));
@@ -158,14 +164,37 @@ public class MySQL {
     }
 
     /**
+     * 通过id修改，字段不为空就修改，为空则不修改
+     *
+     * @return 修改成功返回true，否则返回false
+     */
+    default Boolean updateById() {
+        Entity entity = Entity.create(getTableName());
+        return updateById(entity);
+    }
+
+    /**
      * 执行查询sql
      *
      * @param sql    sql
      * @param params 参数
      * @return 返回数据列表List<Entity>，默认为null
      */
-    public List<Entity> select(String sql, Object... params) {
+    default List<Entity> selectEntity(String sql, Object... params) {
         return executeQuery(sql, params);
+    }
+
+    /**
+     * 执行查询sql
+     *
+     * @param <T>    泛型T
+     * @param sql    sql
+     * @param params 参数
+     * @return 返回数据列表List<T>，默认为null
+     */
+    @SuppressWarnings("unchecked")
+    default <T> List<T> select(String sql, Object... params) {
+        return (List<T>) select(this.getClass(), sql, params);
     }
 
     /**
@@ -177,7 +206,7 @@ public class MySQL {
      * @param params 参数
      * @return 返回数据列表List<T>，默认为null
      */
-    public <T> List<T> select(Class<T> tClass, String sql, Object... params) {
+    default <T> List<T> select(Class<T> tClass, String sql, Object... params) {
         List<T> select = null;
         try {
             select = getDb().query(sql, tClass, params);
@@ -194,7 +223,7 @@ public class MySQL {
      * @param params 参数
      * @return 返回实体对象Entity，默认为空
      */
-    public Entity selectOne(String sql, Object... params) {
+    default Entity selectOneEntity(String sql, Object... params) {
         Entity entity = null;
         try {
             entity = getDb().queryOne(sql, params);
@@ -208,42 +237,40 @@ public class MySQL {
      * 查询一条数据
      *
      * @param <T>    泛型T
-     * @param tClass 类型
      * @param sql    sql
      * @param params 参数
      * @return 返回实体对象T，默认为空
      */
-    public <T> T selectOne(Class<T> tClass, String sql, Object... params) {
-        List<T> list = select(tClass, sql, params);
+    default <T> T selectOne(String sql, Object... params) {
+        List<T> list = select(sql, params);
         if (list != null && list.size() >= 1) {
             return list.get(0);
         }
         return null;
     }
 
+//    /**
+//     * 通过主键id查询
+//     *
+//     * @param tableName 表名
+//     * @param id        主键id
+//     * @return 实体对象Entity，默认为null
+//     */
+//    default Entity selectByIdEntity(String tableName, Object id) {
+//        String sql = "SELECT * FROM " + tableName + " WHERE `id`=?";
+//        return selectOne(sql, id);
+//    }
+
+
     /**
      * 通过主键id查询
      *
-     * @param tableName 表名
-     * @param id        主键id
+     * @param id 主键id
      * @return 实体对象Entity，默认为null
      */
-    public Entity selectById(String tableName, Object id) {
-        String sql = "SELECT * FROM " + tableName + " WHERE `id`=?";
+    default <T> T selectById(Object id) {
+        String sql = "SELECT * FROM " + getTableName() + " WHERE `id`=?";
         return selectOne(sql, id);
-    }
-
-
-    /**
-     * 通过主键id查询
-     *
-     * @param tableName 表名
-     * @param id        主键id
-     * @return 实体对象Entity，默认为null
-     */
-    public <T> T selectById(Class<T> tClass, String tableName, Object id) {
-        String sql = "SELECT * FROM " + tableName + " WHERE `id`=?";
-        return selectOne(tClass, sql, id);
     }
 
 
@@ -254,7 +281,7 @@ public class MySQL {
      * @param params 参数
      * @return 数据条数Integer，默认为0
      */
-    public Integer count(String sql, Object... params) {
+    default Integer count(String sql, Object... params) {
         Number number = 0;
         try {
             number = getDb().queryNumber(sql, params);
@@ -275,7 +302,7 @@ public class MySQL {
      * @return Page 对象
      * @see Page
      */
-    public Page page(Integer current, Integer size, String orderBy, String sql, Object... params) {
+    default Page page(Integer current, Integer size, String orderBy, String sql, Object... params) {
         Page page = new Page(current, size, orderBy);
         return page(page, sql, params);
     }
@@ -289,7 +316,7 @@ public class MySQL {
      * @return Page 对象
      * @see Page
      */
-    public Page page(Page page, String sql, Object... params) {
+    default Page page(Page page, String sql, Object... params) {
         ////1.count查询
         String countSql = "SELECT COUNT(*) FROM (" + sql + ") temp";
         Integer count = count(countSql, params);
@@ -313,10 +340,10 @@ public class MySQL {
      *
      * @param transactionLevel 事务级别
      * @param func             空方法
-     * @see TransactionLevel,VoidFunc1,Db
+     * @see TransactionLevel,VoidFunc1, cn.hutool.db.Db
      */
-    public Db transaction(TransactionLevel transactionLevel, VoidFunc1<Db> func) {
-        Db db = null;
+    default cn.hutool.db.Db transaction(TransactionLevel transactionLevel, VoidFunc1<cn.hutool.db.Db> func) {
+        cn.hutool.db.Db db = null;
         try {
             db = getDb().tx(transactionLevel, func);
         } catch (SQLException e) {
@@ -329,9 +356,9 @@ public class MySQL {
      * 事务执行
      *
      * @param func 空方法
-     * @see TransactionLevel,VoidFunc1,Db
+     * @see TransactionLevel,VoidFunc1, cn.hutool.db.Db
      */
-    public Db transaction(VoidFunc1<Db> func) {
+    default cn.hutool.db.Db transaction(VoidFunc1<cn.hutool.db.Db> func) {
         return transaction(null, func);
     }
 
@@ -343,7 +370,7 @@ public class MySQL {
      * @return Db
      * @see cn.hutool.db.Db
      */
-    private cn.hutool.db.Db getDb() {
+    default cn.hutool.db.Db getDb() {
         return cn.hutool.db.Db.use();
     }
 
@@ -352,7 +379,7 @@ public class MySQL {
      *
      * @param entity 参数
      */
-    private void checkEntity(Entity entity) {
+    default void checkEntity(Entity entity) {
         if (CollectionUtil.isEmpty(entity)) {
             ExceptionUtil.throwDbRuntimeException("entity 不能为空！");
         }

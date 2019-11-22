@@ -6,33 +6,33 @@ import org.junit.jupiter.api.Test;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-class MySqlDbTest {
-    private Db db = new MySqlDb();
+class MySqlDataBaseTest {
+    private DataBase dataBase = new MySqlDb();
 
     @Test
     void executeQuery() throws SQLException {
         String sql = "select * from user where id =?";
-        ResultSet resultSet = db.executeQuery(sql, 1);
+        ResultSet resultSet = dataBase.executeQuery(sql, 1);
     }
 
     @Test
     void executeUpdate() {
         String sql = "INSERT INTO `test`.`user` (`name`, `age`) VALUES (?, ?);";
-        int update = db.executeUpdate(sql, "测试002", 19);
+        int update = dataBase.executeUpdate(sql, "测试002", 19);
         assert update > 0;
     }
 
     @Test
     void execute() {
         String sql = "DROP TABLE user_copy";
-        Boolean result = db.execute(sql);
+        Boolean result = dataBase.execute(sql);
         assert !result;
     }
 
     @Test
     void insert() {
         String sql = "INSERT INTO `test`.`user` (`name`, `age`) VALUES (?, ?);";
-        Boolean insert = db.insert(sql, "测试xxx", 190);
+        Boolean insert = dataBase.insert(sql, "测试xxx", 190);
         assert insert;
     }
 
@@ -41,7 +41,7 @@ class MySqlDbTest {
         Entity entity = new Entity("user");
         entity.set("name", "张三001");
         entity.set("age", 68);
-        Boolean insert = db.insert(entity);
+        Boolean insert = dataBase.insert(entity);
         assert insert;
     }
 

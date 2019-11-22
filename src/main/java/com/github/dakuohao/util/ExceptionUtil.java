@@ -20,7 +20,7 @@ public class ExceptionUtil {
      */
     public static void throwDbRuntimeException(Exception exception, String message) {
         exception.printStackTrace();
-        throw new DbRuntimeException(message);
+        throw new DbRuntimeException(message,exception);
     }
 
     /**

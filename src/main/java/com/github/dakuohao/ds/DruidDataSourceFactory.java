@@ -15,6 +15,7 @@ import javax.sql.DataSource;
  */
 public class DruidDataSourceFactory implements DataSourceFactory {
 
+    @Override
     public DataSource getDataSource() {
         final DruidDataSource ds = new DruidDataSource();
 
