@@ -1,14 +1,14 @@
-package com.github.dakuohao.util;
+package com.github.dakuohao;
 
+import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.db.Entity;
-import cn.hutool.db.sql.SqlUtil;
-import com.github.dakuohao.DataBase;
-import com.github.dakuohao.bean.Page;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+import static com.sun.org.apache.regexp.internal.RE.MATCH_CASEINDEPENDENT;
 
 /**
  * SQL构建工具
@@ -47,7 +47,7 @@ public final class Sql implements DataBase {
      * @return Sql
      */
     public Sql append(CharSequence sql) {
-        stringBuilder.append(sql);
+        stringBuilder.append(sql).append(" ");
         return this;
     }
 
@@ -60,7 +60,7 @@ public final class Sql implements DataBase {
      */
     public Sql append(Boolean isNull, CharSequence sql) {
         if (isNull) {
-            stringBuilder.append(sql);
+            stringBuilder.append(sql).append(" ");
         }
         return this;
     }
@@ -79,13 +79,28 @@ public final class Sql implements DataBase {
         for (Map.Entry<String, Object> entry : entity.entrySet()) {
             String key = entry.getKey();
             Object value = entry.getValue();
-            String flag = "@" + key;
+            String flag = "${" + key + "}";
             while (sql.contains(flag)) {
                 sql = sql.replace(flag, "?");
                 params.add(value);
             }
         }
+        checkSql();
         return this;
+    }
+
+    /**
+     * 设置参数
+     * 变量使用 @变量名  方式
+     * 示例： SELECT * FROM user WHERE name = ${name};
+     *
+     * @param bean beans
+     * @return Sql
+     */
+    public Sql setParams(Object bean) {
+        Entity entity = Entity.create();
+        BeanUtil.beanToMap(bean, entity, true, true);
+        return setParams(entity);
     }
 
     /**
@@ -111,7 +126,6 @@ public final class Sql implements DataBase {
      * @return List<Entity>
      */
     public List<Entity> executeQuery() {
-        checkSql();
         return select(this.sql, this.params);
     }
 
@@ -172,10 +186,17 @@ public final class Sql implements DataBase {
      * 检测sql，处理为规范sql
      */
     private void checkSql() {
-        //格式化sql
-        this.sql = SqlUtil.formatSql(this.sql);
         //去除 where后的and
-        this.sql = this.sql.replaceAll("WHERE\\SAND ", "WHERE");
+        String[] split = this.sql.split("where|WHERE");//MATCH_CASEINDEPENDENT 忽略大小写
+        if (split.length > 1) {
+            String where = split[1];
+            String trim = where.trim();
+            String and = trim.substring(0, 3);
+            if ("and".equalsIgnoreCase(and)) {
+                where = where.replace(and, "");
+            }
+            this.sql = split[0] + " WHERE " + where;
+        }
     }
 
 
@@ -196,4 +217,6 @@ public final class Sql implements DataBase {
     public void setParams(List<Object> params) {
         this.params = params;
     }
+
+
 }

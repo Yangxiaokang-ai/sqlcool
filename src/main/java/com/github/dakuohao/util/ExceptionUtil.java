@@ -1,5 +1,7 @@
 package com.github.dakuohao.util;
 
+import cn.hutool.log.Log;
+import cn.hutool.log.LogFactory;
 import com.github.dakuohao.exeption.DbRuntimeException;
 
 /**
@@ -10,6 +12,7 @@ import com.github.dakuohao.exeption.DbRuntimeException;
  * @date 2019/11/19 17:14
  */
 public class ExceptionUtil {
+    private static final Log LOG = LogFactory.get();
 
     /**
      * 抛出DbRuntimeException
@@ -20,7 +23,8 @@ public class ExceptionUtil {
      */
     public static void throwDbRuntimeException(Exception exception, String message) {
         exception.printStackTrace();
-        throw new DbRuntimeException(message,exception);
+        LOG.error(message);
+        throw new DbRuntimeException(message, exception);
     }
 
     /**
@@ -30,6 +34,7 @@ public class ExceptionUtil {
      * @see DbRuntimeException
      */
     public static void throwDbRuntimeException(String message) {
+        LOG.error(message);
         throw new DbRuntimeException(message);
     }
 }

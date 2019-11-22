@@ -21,10 +21,10 @@ public class LogUtil {
      * @param params 参数
      */
     public static void log(String sql, Object... params) {
-        LOG.debug("原SQL： " + sql);
-        if (ArrayUtil.isNotEmpty(params)) {
-            LOG.debug("参数： " + ArrayUtil.toString(params));
-        }
+//        LOG.debug("原SQL： " + sql);
+//        if (ArrayUtil.isNotEmpty(params)) {
+//            LOG.debug("参数： " + ArrayUtil.toString(params));
+//        }
         //替换?为{}
         sql = sql.replaceAll("\\?", "{}");
         //如果是字符串时，给参数拼接 单引号''
@@ -35,7 +35,7 @@ public class LogUtil {
                 params[i] = "'" + param + "'";
             }
         }
-        LOG.debug("执行sql： " + sql, params);
+        LOG.info("执行sql： " + sql, params);
     }
 
 }

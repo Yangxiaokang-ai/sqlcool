@@ -1,6 +1,9 @@
 package com.github.dakuohao.util.entity;
 
+import com.github.dakuohao.DataBase;
 import lombok.Data;
+
+import java.time.LocalDate;
 
 /**
  * 用户
@@ -11,8 +14,13 @@ import lombok.Data;
  * @date 2019/11/20 16:54
  */
 @Data
-public class User {
+public class User implements DataBase {
     private Integer id;
     private String name;
     private Integer age;
+    private LocalDate createTime;
+    private LocalDate createTime1;
+    private LocalDate createTime2;
+    private LocalDate updateTime;
+    private Boolean deleted;
 }

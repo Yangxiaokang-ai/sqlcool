@@ -41,6 +41,26 @@ MyBatis太笨了，JPA太重了，数据库操作应该是清爽简介的，而�
 
 # 怎么使用？
 
+假设创建一个用户表，如下：
+```sql
+-- 创建 test 的数据库结构
+CREATE DATABASE IF NOT EXISTS `test` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci */ /*!80016 DEFAULT ENCRYPTION='N' */;
+USE `test`;
+-- 创建  表 test.user 结构
+CREATE TABLE IF NOT EXISTS `user` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'id主键',
+  `name` varchar(50) DEFAULT NULL COMMENT '姓名',
+  `age` int(11) DEFAULT NULL COMMENT '年龄',
+  `create_time` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+  `deleted` tinyint(4) DEFAULT NULL COMMENT '是否删除',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='用户表，用作测试';
+
+```
+[sql源码在 sql.sql文件](sql.sql)
+
+对应表创建
 
 # 站在巨人的肩膀上
 本工具得益于开源社区，依赖 [Hutool](https://www.hutool.cn/)工具类。

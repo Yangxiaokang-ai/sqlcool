@@ -4,11 +4,13 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.lang.func.VoidFunc1;
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.db.Db;
 import cn.hutool.db.Entity;
 import cn.hutool.db.transaction.TransactionLevel;
-import com.github.dakuohao.bean.Page;
+import com.github.dakuohao.factory.DbFatory;
 import com.github.dakuohao.util.ExceptionUtil;
 
+import java.lang.reflect.Field;
 import java.sql.SQLException;
 import java.util.List;
 
@@ -77,13 +79,16 @@ public interface DataBase {
     default Boolean insert(Entity entity) {
         checkEntity(entity);
 
-        int insert = 0;
+        Long id = 0L;
         try {
-            insert = getDb().insert(entity);
+            id = getDb().insertForGeneratedKey(entity);
+            if (id > 0) {
+                entity.set("id", id);
+            }
         } catch (SQLException e) {
             ExceptionUtil.throwDbRuntimeException(e, "插入数据时发生异常");
         }
-        return insert > 0;
+        return id > 0L;
     }
 
     /**
@@ -96,7 +101,31 @@ public interface DataBase {
         Entity entity = new Entity(getTableName());
         //转化为下划线字段  忽略null值的字段
         BeanUtil.beanToMap(this, entity, true, true);
-        return insert(entity);
+        Boolean insert = insert(entity);
+        try {
+            //获取一个类的 ==所有成员变量，不包括基类==
+            Field field = this.getClass().getDeclaredField("id");
+            field.setAccessible(true);
+            if (field.getType() == int.class) {
+                field.setInt(this, entity.getInt("id"));
+            }
+            if (field.getType() == long.class) {
+                field.setLong(this, entity.getLong("id"));
+            }
+            if (field.getType() == Integer.class) {
+                field.set(this, entity.getInt("id"));
+            }
+            if (field.getType() == Long.class) {
+                field.set(this, entity.getLong("id"));
+            }
+            if (field.getType() == String.class) {
+                field.set(this, entity.getStr("id"));
+            }
+            //todo id字段其他类型后期用到再支持
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            ExceptionUtil.throwDbRuntimeException(e, "inset后设置自动生成的主键，反射时异常");
+        }
+        return insert;
     }
 
     /**
@@ -368,10 +397,10 @@ public interface DataBase {
      * 获得Db对象
      *
      * @return Db
-     * @see cn.hutool.db.Db
+     * @see Db
      */
-    default cn.hutool.db.Db getDb() {
-        return cn.hutool.db.Db.use();
+    default Db getDb() {
+        return DbFatory.get();
     }
 
     /**
