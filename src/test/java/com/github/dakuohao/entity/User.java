@@ -1,4 +1,4 @@
-package com.github.dakuohao.util.entity;
+package com.github.dakuohao.entity;
 
 import com.github.dakuohao.DataBase;
 import lombok.Data;

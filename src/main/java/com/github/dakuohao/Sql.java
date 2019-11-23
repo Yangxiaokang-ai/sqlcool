@@ -3,7 +3,6 @@ package com.github.dakuohao;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.db.Entity;
 
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -99,7 +98,7 @@ public final class Sql implements DataBase {
      * @param entity entity对象 key - value形式
      * @return Sql
      */
-    public Sql setParams(Map<String,Object> entity) {
+    public Sql setParams(Map<String, Object> entity) {
         sql = stringBuilder.toString();
         List<Object> paramsList = new ArrayList<>();
         for (Map.Entry<String, Object> entry : entity.entrySet()) {
@@ -154,7 +153,7 @@ public final class Sql implements DataBase {
         String select = this.sql.substring(0, 6);
         //执行查询
         if ("select".equalsIgnoreCase(select)) {
-            if(null!=this.tClass){
+            if (null != this.tClass) {
                 return (T) executeQuery(this.tClass);
             }
             return (T) executeQuery();
@@ -190,9 +189,8 @@ public final class Sql implements DataBase {
      * @return Integer
      */
     public Integer executeUpdate() {
-        return executeUpdate(this.sql,this.params);
+        return executeUpdate(this.sql, this.params);
     }
-
 
 
     /**

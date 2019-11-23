@@ -1,4 +1,4 @@
-package com.github.dakuohao.util.entity;
+package com.github.dakuohao.entity;
 
 import cn.hutool.db.Entity;
 import cn.hutool.json.JSONUtil;
