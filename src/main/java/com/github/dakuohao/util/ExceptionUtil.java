@@ -15,6 +15,18 @@ public class ExceptionUtil {
     private static final Log LOG = LogFactory.get();
 
     /**
+     * 打印异常信息，但不抛出异常
+     *
+     * @param exception 异常对象
+     * @param message   提示信息
+     * @see DbRuntimeException
+     */
+    public static void logException(Exception exception, String message) {
+        exception.printStackTrace();
+        LOG.error(message);
+    }
+
+    /**
      * 抛出DbRuntimeException
      *
      * @param exception 异常对象

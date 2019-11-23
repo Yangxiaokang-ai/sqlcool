@@ -104,6 +104,7 @@ public interface DataBase {
         //转化为下划线字段  忽略null值的字段
         BeanUtil.beanToMap(this, entity, true, true);
         Boolean insert = insert(entity);
+        //插入成功后 将自增主键赋值给id字段，未设置自增或没有id字段则不赋值
         try {
             //获取一个类的 ==所有成员变量，不包括基类==
             Field field = this.getClass().getDeclaredField("id");
@@ -111,7 +112,7 @@ public interface DataBase {
             Object id = ConverterRegistry.getInstance().convert(field.getType(), entity.getInt("id"));
             field.set(this, id);
         } catch (NoSuchFieldException | IllegalAccessException e) {
-            ExceptionUtil.throwDbRuntimeException(e, "inset后设置自动生成的主键，反射时异常");
+            ExceptionUtil.logException(e, "inset后设置自动生成的主键，反射时异常，插入数据库成功但未取到自增主键，检查数据库是否设置自增主键，且字段名必须是id");
         }
         return insert;
     }
