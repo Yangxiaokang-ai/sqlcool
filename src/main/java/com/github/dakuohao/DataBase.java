@@ -2,6 +2,7 @@ package com.github.dakuohao;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollectionUtil;
+import cn.hutool.core.convert.ConverterRegistry;
 import cn.hutool.core.lang.func.VoidFunc1;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.db.Db;
@@ -107,23 +108,8 @@ public interface DataBase {
             //获取一个类的 ==所有成员变量，不包括基类==
             Field field = this.getClass().getDeclaredField("id");
             field.setAccessible(true);
-            field.set(ConverterRegistry.getInstance().convert(field.getType(),) ,entity.getInt("id"));
-            if (field.getType() == int.class) {
-                field.setInt(this, entity.getInt("id"));
-            }
-            if (field.getType() == long.class) {
-                field.setLong(this, entity.getLong("id"));
-            }
-            if (field.getType() == Integer.class) {
-                field.set(this, entity.getInt("id"));
-            }
-            if (field.getType() == Long.class) {
-                field.set(this, entity.getLong("id"));
-            }
-            if (field.getType() == String.class) {
-                field.set(this, entity.getStr("id"));
-            }
-            //todo id字段其他类型后期用到再支持
+            Object id = ConverterRegistry.getInstance().convert(field.getType(), entity.getInt("id"));
+            field.set(this, id);
         } catch (NoSuchFieldException | IllegalAccessException e) {
             ExceptionUtil.throwDbRuntimeException(e, "inset后设置自动生成的主键，反射时异常");
         }
