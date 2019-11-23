@@ -99,7 +99,7 @@ public final class Sql implements DataBase {
      * @param entity entity对象 key - value形式
      * @return Sql
      */
-    public Sql setParams(Entity entity) {
+    public Sql setParams(Map<String,Object> entity) {
         sql = stringBuilder.toString();
         List<Object> paramsList = new ArrayList<>();
         for (Map.Entry<String, Object> entry : entity.entrySet()) {
