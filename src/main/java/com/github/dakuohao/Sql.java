@@ -8,7 +8,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import static com.sun.org.apache.regexp.internal.RE.MATCH_CASEINDEPENDENT;
 
 /**
  * SQL构建工具
@@ -28,7 +27,11 @@ public final class Sql implements DataBase {
     /**
      * sql参数
      */
-    private List<Object> params;
+    private Object[] params;
+    /**
+     * 参数的类型
+     */
+    private Class tClass;
 
     /**
      * 私有构造函数
@@ -36,8 +39,31 @@ public final class Sql implements DataBase {
     private Sql() {
     }
 
-    public static Sql create() {
+    /**
+     * 私有构造函数
+     */
+    private Sql(String sql) {
+        this.sql = sql;
+        this.stringBuilder.append(sql).append(" ");
+    }
+
+    /**
+     * 获得sql对象
+     *
+     * @return Sql
+     */
+    public static Sql sql() {
         return new Sql();
+    }
+
+    /**
+     * 获得sql对象
+     *
+     * @param sql sql语句
+     * @return Sql
+     */
+    public static Sql sql(String sql) {
+        return new Sql(sql);
     }
 
     /**
@@ -75,14 +101,26 @@ public final class Sql implements DataBase {
      */
     public Sql setParams(Entity entity) {
         sql = stringBuilder.toString();
-        params = new ArrayList<>();
+        List<Object> paramsList = new ArrayList<>();
         for (Map.Entry<String, Object> entry : entity.entrySet()) {
             String key = entry.getKey();
             Object value = entry.getValue();
+            //替换 变量 ${xxx} 替换为? 预编译sql
             String flag = "${" + key + "}";
             while (sql.contains(flag)) {
                 sql = sql.replace(flag, "?");
-                params.add(value);
+                paramsList.add(value);
+            }
+            params = paramsList.toArray();
+
+            //替换 变量 #{xxx}  直接拼接
+            String str = "#{" + key + "}";
+            while (sql.contains(str)) {
+                if (value instanceof CharSequence) {
+                    sql = sql.replace(str, "'" + value + "'");
+                } else {
+                    sql = sql.replace(str, value + "");
+                }
             }
         }
         checkSql();
@@ -98,6 +136,7 @@ public final class Sql implements DataBase {
      * @return Sql
      */
     public Sql setParams(Object bean) {
+        this.tClass = bean.getClass();
         Entity entity = Entity.create();
         BeanUtil.beanToMap(bean, entity, true, true);
         return setParams(entity);
@@ -113,9 +152,14 @@ public final class Sql implements DataBase {
     public <T> T execute() {
         this.sql = this.sql.trim();
         String select = this.sql.substring(0, 6);
+        //执行查询
         if ("select".equalsIgnoreCase(select)) {
+            if(null!=this.tClass){
+                return (T) executeQuery(this.tClass);
+            }
             return (T) executeQuery();
         }
+        //执行修改
         return (T) executeUpdate();
     }
 
@@ -126,7 +170,7 @@ public final class Sql implements DataBase {
      * @return List<Entity>
      */
     public List<Entity> executeQuery() {
-        return select(this.sql, this.params);
+        return executeQuery(this.sql, this.params);
     }
 
     /**
@@ -146,13 +190,10 @@ public final class Sql implements DataBase {
      * @return Integer
      */
     public Integer executeUpdate() {
-        try {
-            return cn.hutool.db.Db.use().execute(this.sql, this.params);
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return null;
+        return executeUpdate(this.sql,this.params);
     }
+
+
 
     /**
      * 分页查询，自动包装查询sql为分页查询
@@ -187,11 +228,11 @@ public final class Sql implements DataBase {
      */
     private void checkSql() {
         //去除 where后的and
-        String[] split = this.sql.split("where|WHERE");//MATCH_CASEINDEPENDENT 忽略大小写
+        //忽略大小写 拆分sql
+        String[] split = this.sql.split("(?i)where");
         if (split.length > 1) {
             String where = split[1];
-            String trim = where.trim();
-            String and = trim.substring(0, 3);
+            String and = where.trim().substring(0, 3);
             if ("and".equalsIgnoreCase(and)) {
                 where = where.replace(and, "");
             }
@@ -210,13 +251,12 @@ public final class Sql implements DataBase {
         this.sql = sql;
     }
 
-    public List<Object> getParams() {
+    public Object[] getParams() {
         return params;
     }
 
-    public void setParams(List<Object> params) {
-        this.params = params;
-    }
-
-
+//    public Sql setParams(Object... params) {
+//        this.params = params;
+//        return this;
+//    }
 }
