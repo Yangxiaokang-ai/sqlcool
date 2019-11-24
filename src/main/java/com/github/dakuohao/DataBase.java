@@ -7,12 +7,14 @@ import cn.hutool.core.lang.func.VoidFunc1;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.db.Db;
 import cn.hutool.db.Entity;
+import cn.hutool.db.sql.SqlLog;
 import cn.hutool.db.transaction.TransactionLevel;
 import com.github.dakuohao.factory.DbFatory;
 import com.github.dakuohao.util.ExceptionUtil;
 
 import java.lang.reflect.Field;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -60,6 +62,42 @@ public interface DataBase {
         return result;
     }
 
+//    /**
+//     * 批量执行执行修改sql
+//     *
+//     * @param sql         sql语句
+//     * @param paramsBatch 批量sql参数
+//     * @return int[]，每个SQL执行影响的行数
+    //todo hutool此处有bug  后期修改
+//     */
+//    default int[] executeUpdateBatch(String sql, Object[]... paramsBatch) {
+//        int[] result = null;
+//        try {
+//            result = getDb().executeBatch(sql, paramsBatch);
+//        } catch (SQLException e) {
+//            ExceptionUtil.throwDbRuntimeException(e, "执行executeUpdate时发生异常");
+//        }
+//        return result;
+//    }
+
+    /**
+     * 批量执行执行修改sql
+     *
+     * @param sql 多个sql语句
+     * @return int[]，每个SQL执行影响的行数
+     */
+    default int[] executeUpdateBatch(String... sql) {
+        int[] result = null;
+        try {
+            result = getDb().executeBatch(sql);
+            //todo hutool没做日志  这里补充
+            SqlLog.INSTANCE.logForBatch(sql);
+        } catch (SQLException e) {
+            ExceptionUtil.throwDbRuntimeException(e, "执行executeUpdate时发生异常");
+        }
+        return result;
+    }
+
     /**
      * 执行插入数据sql
      *
@@ -72,25 +110,20 @@ public interface DataBase {
     }
 
     /**
-     * 执行插入数据sql
-     * 如果数据库配置自动生成主键，那么会自动设置id字段为主键值
+     * 执行插入数据sql 并返回自增主键
      *
-     * @param entity 实体对象
+     * @param sql    sql
+     * @param params 参数
      * @return 插入成功返回true，否则返回false
      */
-    default Boolean insert(Entity entity) {
-        checkEntity(entity);
-
+    default Long insertForGeneratedKey(String sql, Object... params) {
         Long id = 0L;
         try {
-            id = getDb().insertForGeneratedKey(entity);
-            if (id > 0) {
-                entity.set("id", id);
-            }
+            id = getDb().executeForGeneratedKey(sql, params);
         } catch (SQLException e) {
-            ExceptionUtil.throwDbRuntimeException(e, "插入数据时发生异常");
+            ExceptionUtil.throwDbRuntimeException(e, "执行executeForGeneratedKey方法时异常");
         }
-        return id > 0L;
+        return id;
     }
 
     /**
@@ -100,7 +133,8 @@ public interface DataBase {
      */
     default Boolean insert() {
         //object to bean
-        Entity entity = new Entity(getTableName());
+        String tableName = getTableName(this.getClass());
+        Entity entity = new Entity(tableName);
         //转化为下划线字段  忽略null值的字段
         BeanUtil.beanToMap(this, entity, true, true);
         Boolean insert = insert(entity);
@@ -118,17 +152,61 @@ public interface DataBase {
     }
 
     /**
-     * 获取表名
-     * 将驼峰式命名的类名转换为下划线方式返回
+     * 执行插入数据sql
+     * 如果数据库配置自动生成主键，那么会自动设置id字段为主键值
      *
-     * @return String
+     * @param entity 实体对象
+     * @return 插入成功返回true，否则返回false
      */
-    default String getTableName() {
-        Table table = this.getClass().getAnnotation(Table.class);
-        if (table != null && StrUtil.isNotBlank(table.value())) {
-            return StrUtil.toUnderlineCase(table.value());
+    default Boolean insert(Entity entity) {
+        checkEntity(entity);
+        Long id = 0L;
+        try {
+            id = getDb().insertForGeneratedKey(entity);
+            if (id > 0) {
+                entity.set("id", id);
+            }
+        } catch (SQLException e) {
+            ExceptionUtil.throwDbRuntimeException(e, "插入数据时发生异常");
         }
-        return StrUtil.toUnderlineCase(this.getClass().getSimpleName());
+        return id > 0L;
+    }
+
+    /**
+     * 批量插入数据，本质是jdbc的批次插入，效率快
+     * 需要注意的是，批量插入每一条数据结构必须一致。批量插入数据时会获取第一条数据的字段结构，之后的数据会按照这个格式插入。<br>
+     * 也就是说假如第一条数据只有2个字段，后边数据多于这两个字段的部分将被抛弃。
+     * 会自动生成主键，并设置id值
+     *
+     * @param entitys 多个实体对象
+     * @return 插入成功返回true，否则返回false
+     */
+    @SuppressWarnings("unchecked")
+    default Boolean insert(List entitys) {
+        if (entitys.isEmpty()) {
+            ExceptionUtil.throwDbRuntimeException("批量插入，数据不能为空");
+        }
+        Object o = entitys.get(0);
+        List<Entity> list;
+        //判断不是Entity类型就 beanToEntity
+        if (o instanceof Entity) {
+            list = entitys;
+        } else {
+            list = new ArrayList<>(entitys.size());
+            String tableName = getTableName(o.getClass());
+            for (Object bean : entitys) {
+                Entity entity = Entity.create(tableName);
+                BeanUtil.beanToMap(bean, entity, true, true);
+                list.add(entity);
+            }
+        }
+        int[] ids = null;
+        try {
+            ids = getDb().insert(list);
+        } catch (Exception e) {
+            ExceptionUtil.throwDbRuntimeException(e, "插入数据时发生异常");
+        }
+        return ids != null;
     }
 
     /**
@@ -153,6 +231,26 @@ public interface DataBase {
         String sql = "DELETE FROM " + tableName + " WHERE id =?";
         return delete(sql, id);
     }
+
+    /**
+     * 执行删除sql
+     *
+     * @return 删除成功返回true，失败返回false
+     */
+    default Boolean deleteById() {
+        boolean delete = false;
+        try {
+            String tableName = getTableName(this.getClass());
+            Field idField = this.getClass().getDeclaredField("id");
+            idField.setAccessible(true);
+            Object id = idField.get(this);
+            delete = deleteById(tableName, id);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            ExceptionUtil.throwDbRuntimeException(e, "deleteById方法执行时异常");
+        }
+        return delete;
+    }
+
 
     /**
      * 执行修改sql
@@ -190,7 +288,8 @@ public interface DataBase {
      * @return 修改成功返回true，否则返回false
      */
     default Boolean updateById() {
-        Entity entity = Entity.create(getTableName());
+        String tableName = getTableName(this.getClass());
+        Entity entity = Entity.create(tableName);
         return updateById(entity);
     }
 
@@ -290,7 +389,8 @@ public interface DataBase {
      * @return 实体对象Entity，默认为null
      */
     default <T> T selectById(Object id) {
-        String sql = "SELECT * FROM " + getTableName() + " WHERE `id`=?";
+        String tableName = getTableName(this.getClass());
+        String sql = "SELECT * FROM " + tableName + " WHERE `id`=?";
         return selectOne(sql, id);
     }
 
@@ -381,7 +481,7 @@ public interface DataBase {
         transaction(null, func);
     }
 
-    //---- 私有方法  ---
+    //---- 工具方法方法  ---
 
     /**
      * 获得Db对象
@@ -411,5 +511,19 @@ public interface DataBase {
         }
     }
 
+    /**
+     * 获取表名
+     * 将驼峰式命名的类名转换为下划线方式返回
+     *
+     * @param aClass
+     * @return String
+     */
+    default String getTableName(Class aClass) {
+        Table table = (Table) aClass.getAnnotation(Table.class);
+        if (table != null && StrUtil.isNotBlank(table.value())) {
+            return StrUtil.toUnderlineCase(table.value());
+        }
+        return StrUtil.toUnderlineCase(aClass.getSimpleName());
+    }
 
 }

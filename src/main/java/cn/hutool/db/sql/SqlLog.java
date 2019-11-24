@@ -72,6 +72,27 @@ public enum SqlLog {
     }
 
     /**
+     * 打印批量 SQL日志
+     *
+     * @param sqls SQL语句
+     * @since 4.6.7
+     */
+    public void logForBatch(String... sqls) {
+        StringBuilder sb = new StringBuilder();
+        for (String sql : sqls) {
+            sql = sql.trim();
+            if(!sql.endsWith(";")){
+                sql = sql +";\n";
+            }
+            sb.append(sql);
+        }
+        String logSql = sb.toString();
+        if (this.showSql) {
+            log.log(this.level, "\n[Batch SQL] -> {}", this.formatSql ? SqlFormatter.format(logSql) : logSql);
+        }
+    }
+
+    /**
      * 打印SQL日志
      *
      * @param sql         SQL语句
