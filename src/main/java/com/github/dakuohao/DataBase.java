@@ -124,8 +124,11 @@ public interface DataBase {
      * @return String
      */
     default String getTableName() {
-        String name = this.getClass().getSimpleName();
-        return StrUtil.toUnderlineCase(name);
+        Table table = this.getClass().getAnnotation(Table.class);
+        if (table != null && StrUtil.isNotBlank(table.value())) {
+            return StrUtil.toUnderlineCase(table.value());
+        }
+        return StrUtil.toUnderlineCase(this.getClass().getSimpleName());
     }
 
     /**
@@ -358,26 +361,24 @@ public interface DataBase {
      *
      * @param transactionLevel 事务级别
      * @param func             空方法
-     * @see TransactionLevel,VoidFunc1, cn.hutool.db.Db
+     * @see TransactionLevel,VoidFunc1
      */
-    default cn.hutool.db.Db transaction(TransactionLevel transactionLevel, VoidFunc1<cn.hutool.db.Db> func) {
-        cn.hutool.db.Db db = null;
+    default void transaction(TransactionLevel transactionLevel, VoidFunc1<Db> func) {
         try {
-            db = getDb().tx(transactionLevel, func);
+            getDb().tx(transactionLevel, func);
         } catch (SQLException e) {
             ExceptionUtil.throwDbRuntimeException(e, "事务执行时发生异常");
         }
-        return db;
     }
 
     /**
      * 事务执行
      *
      * @param func 空方法
-     * @see TransactionLevel,VoidFunc1, cn.hutool.db.Db
+     * @see TransactionLevel,VoidFunc1
      */
-    default cn.hutool.db.Db transaction(VoidFunc1<cn.hutool.db.Db> func) {
-        return transaction(null, func);
+    default void transaction(VoidFunc1<Db> func) {
+        transaction(null, func);
     }
 
     //---- 私有方法  ---
@@ -389,6 +390,10 @@ public interface DataBase {
      * @see Db
      */
     default Db getDb() {
+        Table table = this.getClass().getAnnotation(Table.class);
+        if (table != null && StrUtil.isNotEmpty(table.dataSource())) {
+            return DbFatory.get(table.dataSource());
+        }
         return DbFatory.get();
     }
 
@@ -397,7 +402,7 @@ public interface DataBase {
      *
      * @param entity 参数
      */
-    default void checkEntity(Entity entity) {
+    static void checkEntity(Entity entity) {
         if (CollectionUtil.isEmpty(entity)) {
             ExceptionUtil.throwDbRuntimeException("entity 不能为空！");
         }
