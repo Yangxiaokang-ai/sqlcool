@@ -1,6 +1,5 @@
 package com.github.dakuohao;
 
-import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.db.Entity;
 
 import java.util.ArrayList;
@@ -137,7 +136,7 @@ public final class Sql implements DataBase {
     public Sql setParams(Object bean) {
         this.tClass = bean.getClass();
         Entity entity = Entity.create();
-        BeanUtil.beanToMap(bean, entity, true, true);
+        bean2Entity(entity, bean);
         return setParams(entity);
     }
 

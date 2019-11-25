@@ -24,7 +24,6 @@ import java.util.List;
  *
  * @author Peng 1029538990@qq.com
  * @version 1.0
- * @date 2019/11/21 9:14
  */
 public interface DataBase {
 
@@ -66,23 +65,6 @@ public interface DataBase {
     /**
      * 批量执行执行修改sql
      *
-     * @param sql         sql语句
-     * @param paramsBatch 批量sql参数
-     * @return int[]，每个SQL执行影响的行数
-     */
-    default int[] executeUpdateBatch(String sql, Object[]... paramsBatch) {
-        int[] result = null;
-        try {
-            result = getDb().executeBatch(sql, paramsBatch);
-        } catch (SQLException e) {
-            ExceptionUtil.throwDbRuntimeException(e, "执行executeUpdate时发生异常");
-        }
-        return result;
-    }
-
-    /**
-     * 批量执行执行修改sql
-     *
      * @param sql 多个sql语句
      * @return int[]，每个SQL执行影响的行数
      */
@@ -99,13 +81,30 @@ public interface DataBase {
     }
 
     /**
+     * 批量执行执行修改sql
+     *
+     * @param sql         sql语句
+     * @param paramsBatch 批量sql参数
+     * @return int[]，每个SQL执行影响的行数
+     */
+    default int[] executeUpdateBatch(String sql, Object[]... paramsBatch) {
+        int[] result = null;
+        try {
+            result = getDb().executeBatch(sql, paramsBatch);
+        } catch (SQLException e) {
+            ExceptionUtil.throwDbRuntimeException(e, "执行executeUpdate时发生异常");
+        }
+        return result;
+    }
+
+    /**
      * 执行插入数据sql
      *
      * @param sql    sql
      * @param params 参数
      * @return 插入成功返回true，否则返回false
      */
-    default Boolean insertBatch(String sql, Object... params) {
+    default Boolean insert(String sql, Object... params) {
         return executeUpdate(sql, params) > 0;
     }
 
@@ -127,16 +126,16 @@ public interface DataBase {
     }
 
     /**
-     * 执行插入数据sql
+     * 插入
      *
      * @return 插入成功返回true，否则返回false
      */
     default Boolean insert() {
         //object to bean
-        String tableName = getTableName(this.getClass());
+        String tableName = getTableName();
         Entity entity = new Entity(tableName);
         //转化为下划线字段  忽略null值的字段
-        BeanUtil.beanToMap(this, entity, true, true);
+        bean2Entity(entity, this);
         Boolean insert = insert(entity);
         //插入成功后 将自增主键赋值给id字段，未设置自增或没有id字段则不赋值
         try {
@@ -152,7 +151,7 @@ public interface DataBase {
     }
 
     /**
-     * 执行插入数据sql
+     * 插入Entity
      * 如果数据库配置自动生成主键，那么会自动设置id字段为主键值
      *
      * @param entity 实体对象
@@ -219,7 +218,7 @@ public interface DataBase {
             String tableName = getTableName(o.getClass());
             for (Object bean : list) {
                 Entity entity = Entity.create(tableName);
-                BeanUtil.beanToMap(bean, entity, true, true);
+                bean2Entity(entity, bean);
                 entityList.add(entity);
             }
         }
@@ -244,7 +243,7 @@ public interface DataBase {
     }
 
     /**
-     * 执行删除sql
+     * 通过表名和id删除数据
      *
      * @param tableName 表名
      * @param id        主键id
@@ -256,7 +255,25 @@ public interface DataBase {
     }
 
     /**
-     * 执行删除sql
+     * 通过id删除数据
+     *
+     * @return 删除成功返回true，失败返回false
+     */
+    default Boolean deleteById() {
+        try {
+            String tableName = getTableName();
+            Field idField = this.getClass().getDeclaredField("id");
+            idField.setAccessible(true);
+            Object id = idField.get(this);
+            return deleteById(tableName, id);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            ExceptionUtil.throwDbRuntimeException(e, "deleteById方法执行时异常");
+        }
+        return false;
+    }
+
+    /**
+     * 通过表名和ids删除数据
      *
      * @param tableName 表名
      * @param ids       主键ids数组
@@ -272,57 +289,15 @@ public interface DataBase {
     }
 
     /**
-     * 执行删除sql
+     * 通过ids删除数据
      *
      * @param ids 主键ids数组
      * @return 删除成功返回true，失败返回false
      */
     default Boolean deleteByIds(Object... ids) {
-        String tableName = getTableName(this.getClass());
+        String tableName = getTableName();
         return deleteByIds(tableName, ids);
     }
-
-    /**
-     * 执行删除sql
-     *
-     * @return 删除成功返回true，失败返回false
-     */
-    default Boolean deleteById() {
-        try {
-            String tableName = getTableName(this.getClass());
-            Field idField = this.getClass().getDeclaredField("id");
-            idField.setAccessible(true);
-            Object id = idField.get(this);
-            return deleteById(tableName, id);
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            ExceptionUtil.throwDbRuntimeException(e, "deleteById方法执行时异常");
-        }
-        return false;
-    }
-
-    /**
-     * 通过where条件删除
-     *
-     * @param tableName 表名
-     * @param where     where语句
-     * @return 删除成功返回true
-     */
-    default Boolean delete(String tableName, Sql where) {
-        String sql = "DELETE FROM " + tableName + " WHERE " + where.getSql();
-        return delete(sql, where.getParams());
-    }
-
-    /**
-     * 通过where条件删除
-     *
-     * @param where where语句
-     * @return 删除成功返回true
-     */
-    default Boolean delete(Sql where) {
-        String tableName = getTableName(this.getClass());
-        return delete(tableName, where);
-    }
-
 
     /**
      * 执行修改sql
@@ -343,8 +318,8 @@ public interface DataBase {
      */
     default Boolean updateById(Entity entity) {
         checkEntity(entity);
-
         Entity where = Entity.create(entity.getTableName()).set("id", entity.get("id"));
+        entity.remove("id");
         int update = 0;
         try {
             update = getDb().update(entity, where);
@@ -360,10 +335,73 @@ public interface DataBase {
      * @return 修改成功返回true，否则返回false
      */
     default Boolean updateById() {
-        String tableName = getTableName(this.getClass());
-        Entity entity = Entity.create(tableName);
+        Entity entity = Entity.create(getTableName());
+        bean2Entity(entity, this);
         return updateById(entity);
     }
+
+    /**
+     * 批量修改，一条一条循环修改
+     *
+     * @param list 数据列表
+     * @return 修改成功返回true，否则返回false
+     */
+    @SuppressWarnings("unchecked")
+    default Boolean update(List list) {
+        transaction(parameter -> {
+            checkList(list);
+            Object o = list.get(0);
+            if (o instanceof Entity) {
+                for (Entity entity : (List<Entity>) list) {
+                    updateById(entity);
+                }
+            } else {
+                for (Object bean : list) {
+                    Method insert = bean.getClass().getMethod("updateById");
+                    insert.invoke(bean);
+                }
+            }
+        });
+        return true;
+    }
+
+    /**
+     * 插入或者修改,通过id查询数据库，数据存在则修改，不存在则插入
+     *
+     * @param entity 实体对象
+     * @return 修改成功返回true，否则返回false
+     */
+    default Boolean insertOrUpdate(Entity entity) {
+        transaction(parameter -> {
+            checkEntity(entity);
+            Integer id = entity.getInt("id");
+            if (id != null) {
+                String sql = "SELECT COUNT(*) FROM " + entity.getTableName() + " WHERE id =?";
+                Integer count = count(sql, id);
+                if (count > 0) {//数据库存在，修改数据
+                    updateById(entity);
+                } else {
+                    insert(entity);
+                }
+            } else {//插入数据
+                entity.remove("id");
+                insert(entity);
+            }
+        });
+        return true;
+    }
+
+    /**
+     * 插入或者修改,通过id查询数据库，数据存在则修改，不存在则插入
+     *
+     * @return 修改成功返回true，否则返回false
+     */
+    default Boolean insertOrUpdate() {
+        Entity entity = Entity.create(getTableName());
+        bean2Entity(entity, this);
+        return insertOrUpdate(entity);
+    }
+
 
     /**
      * 执行查询sql
@@ -461,7 +499,7 @@ public interface DataBase {
      * @return 实体对象Entity，默认为null
      */
     default <T> T selectById(Object id) {
-        String tableName = getTableName(this.getClass());
+        String tableName = getTableName();
         String sql = "SELECT * FROM " + tableName + " WHERE `id`=?";
         return selectOne(sql, id);
     }
@@ -479,7 +517,7 @@ public interface DataBase {
         try {
             number = getDb().queryNumber(sql, params);
         } catch (SQLException e) {
-            ExceptionUtil.throwDbRuntimeException(e, "查询数据数量，count时发生异常");
+            ExceptionUtil.throwDbRuntimeException(e, "count方法异常");
         }
         return number.intValue();
     }
@@ -574,7 +612,7 @@ public interface DataBase {
      *
      * @param entity 参数
      */
-    static void checkEntity(Entity entity) {
+    default void checkEntity(Entity entity) {
         if (CollectionUtil.isEmpty(entity)) {
             ExceptionUtil.throwDbRuntimeException("entity 不能为空！");
         }
@@ -598,15 +636,50 @@ public interface DataBase {
      * 获取表名
      * 将驼峰式命名的类名转换为下划线方式返回
      *
-     * @param aClass
+     * @return String
+     */
+    default String getTableName() {
+        return getTableName(this.getClass());
+    }
+
+    /**
+     * 获取表名
+     * 将驼峰式命名的类名转换为下划线方式返回
+     *
+     * @param aClass 类
      * @return String
      */
     default String getTableName(Class aClass) {
         Table table = (Table) aClass.getAnnotation(Table.class);
         if (table != null && StrUtil.isNotBlank(table.value())) {
-            return StrUtil.toUnderlineCase(table.value());
+            return toUnderlineCase(table.value());
         }
-        return StrUtil.toUnderlineCase(aClass.getSimpleName());
+        return toUnderlineCase(aClass.getSimpleName());
+    }
+
+    /**
+     * 驼峰命名转下划线命名
+     *
+     * @param tableName 表名
+     * @return 下划线格式的表名
+     */
+    default String toUnderlineCase(String tableName) {
+        tableName = StrUtil.toUnderlineCase(tableName);
+        if (tableName.startsWith("_")) {
+            tableName = tableName.substring(1);
+        }
+        return "`" + tableName + "`";
+    }
+
+    /**
+     * bean转换为Entity
+     *
+     * @param entity entity对象
+     * @param bean   bean对象
+     */
+    default void bean2Entity(Entity entity, Object bean) {
+        //驼峰转下划线 and  忽略null字段
+        BeanUtil.beanToMap(bean, entity, true, true);
     }
 
 }

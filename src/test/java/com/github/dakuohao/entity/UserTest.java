@@ -1,11 +1,13 @@
 package com.github.dakuohao.entity;
 
 import cn.hutool.core.util.ArrayUtil;
+import cn.hutool.db.Db;
 import cn.hutool.db.Entity;
 import cn.hutool.json.JSONUtil;
 import com.github.dakuohao.Sql;
 import org.junit.jupiter.api.Test;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -76,7 +78,7 @@ class UserTest {
     @Test
     void insertBySql() {
         String sql = "INSERT INTO `user` (`name`, `age`) VALUES (?, ?)";
-        Boolean insert = Sql.sql().insertBatch(sql, "张三", 20);
+        Boolean insert = Sql.sql().insert(sql, "张三", 20);
         assert insert;
         //[执行SQL] : INSERT INTO `user` (`name`, `age`) VALUES ('张三', 20)
     }
@@ -84,7 +86,7 @@ class UserTest {
     @Test
     void insertBySql1() {
         String sql = "INSERT INTO `user` (`name`, `age`) VALUES ('张三', 20)";
-        Boolean insert = Sql.sql().insertBatch(sql);
+        Boolean insert = Sql.sql().insert(sql);
         assert insert;
         //[执行SQL] : INSERT INTO `user` (`name`, `age`) VALUES ('张三', 20)
     }
@@ -260,55 +262,91 @@ class UserTest {
 
     @Test
     void deleteByIds1() {
-        Boolean delete = new User().deleteByIds(4,5,6,7);
+        Boolean delete = new User().deleteByIds(4, 5, 6, 7);
         //[SQL] : DELETE FROM user WHERE id =?
         System.out.println(delete);
     }
 
+
     @Test
-    void deleteByWhere() {
+    void update() {
+        String sql = "UPDATE `user` SET `name` = '测试' WHERE id = ?";
+        Boolean update = Sql.sql().update(sql, 11);
+        assert update;
+        //[SQL] : UPDATE `user` SET `name` = '测试' WHERE id = 11
+    }
+
+    @Test
+    void updateById() {
         User user = new User();
-        user.setId(10);
-        user.setAge(60);
-        Sql where=Sql.sql("id<${id} and age <${age}")
-                .setParams(user);
-        Boolean delete = new User().delete(where);
-        //[SQL] : DELETE FROM user WHERE id<10 and age <60
-        System.out.println(delete);
+        user.setId(11);
+        user.setName("测试");
+        Boolean update = user.updateById();
+        assert update;
+        //[SQL] : UPDATE `user` SET `name` = '测试'  WHERE `id` = 11
     }
 
     @Test
-    void deleteByWhere1() {
-        User user = new User();
-        user.setId(10);
-        user.setAge(60);
-        Sql where=Sql.sql("id<${id} and age <${age}")
-                .setParams(user);
-        Boolean delete = Sql.sql().delete("user",where);
-        //[SQL] : DELETE FROM user WHERE id<10 and age <60
-        System.out.println(delete);
-    }
+    void updateById1() {
+        Entity entity = Entity.create("user")
+                .set("id", 11)
+                .set("name", "测试");
 
-
-
-    @Test
-    void setCreateTime() {
+        Boolean update = Sql.sql().updateById(entity);
+        assert update;
+        //[SQL] : UPDATE `user` SET `name` = '测试'  WHERE `id` = 11
     }
 
     @Test
-    void setUpdateTime() {
+    void updateBatch() {
+        User u1 = new User();
+        u1.setId(11);
+        u1.setName("测试");
+
+        User u2 = new User();
+        u2.setId(12);
+        u2.setName("测试");
+
+        List<User> list = new ArrayList<>();
+        list.add(u1);
+        list.add(u2);
+
+        Boolean update = Sql.sql().update(list);
+        //[SQL] : UPDATE `user` SET `name` = '测试'  WHERE `id` = 11
+        //[SQL] : UPDATE `user` SET `name` = '测试'  WHERE `id` = 12
     }
 
     @Test
-    void setDeleted() {
+    void updateBatch1() {
+        Entity e1 = Entity.create("user")
+                .set("id", 11)
+                .set("name", "测试");
+
+        Entity e2 = Entity.create("user")
+                .set("id", 12)
+                .set("name", "测试");
+
+        List<Entity> list = new ArrayList<>();
+        list.add(e1);
+        list.add(e2);
+
+        Boolean update = Sql.sql().update(list);
+        //[SQL] : UPDATE `user` SET `name` = '测试'  WHERE `id` = 11
+        //[SQL] : UPDATE `user` SET `name` = '测试'  WHERE `id` = 12
     }
 
-    @Test
-    void testEquals() {
-    }
 
     @Test
-    void canEqual() {
+    void insetOrUpdate() {
+        Entity entity = Entity.create("user")
+                .set("id", "86")
+                .set("name", "测试001")
+                .set("age", 45);
+        Boolean result = Sql.sql().insertOrUpdate(entity);
+        assert result;
+        //第一次执行
+        //[SQL] : SELECT COUNT(*) FROM user WHERE id ='86'
+        //[SQL] : INSERT INTO `user` (`name`, `age`) VALUES ('测试001', 45)
     }
 
     @Test
