@@ -1,7 +1,6 @@
 package com.github.dakuohao.entity;
 
 import cn.hutool.core.util.ArrayUtil;
-import cn.hutool.db.Db;
 import cn.hutool.db.Entity;
 import cn.hutool.json.JSONUtil;
 import com.github.dakuohao.Sql;
@@ -63,9 +62,21 @@ class UserTest {
     }
 
     @Test
+    void executeUpdateBatch1() {
+        String sql = "INSERT INTO `user` (`name`, `age`) VALUES (?, ?)";
+        int[] update = Sql.sql().executeUpdateBatch(sql, new Object[]{"张三1", 19}, new Object[]{"张三2", 45});
+        assert update != null;
+        //[SQL] : INSERT INTO `user` (`name`, `age`) VALUES (?, ?)
+
+        System.out.println(ArrayUtil.toString(update));
+        //[1, 1]
+    }
+
+
+    @Test
     void insertBySql() {
         String sql = "INSERT INTO `user` (`name`, `age`) VALUES (?, ?)";
-        Boolean insert = Sql.sql().insert(sql, "张三", 20);
+        Boolean insert = Sql.sql().insertBatch(sql, "张三", 20);
         assert insert;
         //[执行SQL] : INSERT INTO `user` (`name`, `age`) VALUES ('张三', 20)
     }
@@ -73,7 +84,7 @@ class UserTest {
     @Test
     void insertBySql1() {
         String sql = "INSERT INTO `user` (`name`, `age`) VALUES ('张三', 20)";
-        Boolean insert = Sql.sql().insert(sql);
+        Boolean insert = Sql.sql().insertBatch(sql);
         assert insert;
         //[执行SQL] : INSERT INTO `user` (`name`, `age`) VALUES ('张三', 20)
     }
@@ -136,7 +147,7 @@ class UserTest {
         list.add(u2);
 
 //        Boolean insert = Sql.sql().insertBatch(list);
-        Boolean insert = Sql.sql().insert(list);
+        Boolean insert = Sql.sql().insertBatch(list);
         assert insert;
         //[Batch SQL] -> INSERT INTO `user` (`name`, `age`) VALUES (?, ?)
 
@@ -159,7 +170,7 @@ class UserTest {
         list.add(e1);
 //        list.add(e2);
 
-        Boolean insert = Sql.sql().insert(list);
+        Boolean insert = Sql.sql().insertBatch(list);
         assert insert;
         //[Batch SQL] -> INSERT INTO `user` (`name`, `age`) VALUES (?, ?)
 
@@ -167,11 +178,59 @@ class UserTest {
         //[{"name":"张三001","age":20},{"name":"张三002","age":22}]
     }
 
+    @Test
+    void insertBatch21() {
+        //模拟数据
+        User u1 = new User();
+        u1.setName("张三001");
+        u1.setAge(20);
+
+        User u2 = new User();
+        u2.setName("张三002");
+        u2.setAge(22);
+
+        List<User> list = new ArrayList<>();
+        list.add(u1);
+        list.add(u2);
+
+        Boolean insert = Sql.sql().insert(list);
+        assert insert;
+        //[SQL] : INSERT INTO `user` (`name`, `age`) VALUES ('张三001', 20)
+        //[SQL] : INSERT INTO `user` (`name`, `age`) VALUES ('张三002', 22)
+
+        System.out.println(JSONUtil.toJsonStr(list));
+        //[{"name":"张三001","age":20},{"name":"张三002","age":22}]
+    }
+
+    @Test
+    void insertBatch22() {
+        //模拟数据
+        Entity e1 = Entity.create("user")
+                .set("name", "张三001")
+                .set("age", 20);
+
+        Entity e2 = new Entity("user")
+                .set("name", "张三002")
+                .set("age", 22);
+
+        List<Entity> list = new ArrayList<>();
+        list.add(e1);
+        list.add(e2);
+
+        Boolean insert = Sql.sql().insert(list);
+        assert insert;
+        //[SQL] : INSERT INTO `user` (`name`, `age`) VALUES ('张三001', 20)
+        //[SQL] : INSERT INTO `user` (`name`, `age`) VALUES ('张三002', 22)
+
+        System.out.println(JSONUtil.toJsonStr(list));
+        //[{"name":"张三001","id":55,"age":20},{"name":"张三002","id":56,"age":22}]
+    }
+
 
     @Test
     void delete() {
         String sql = "DELETE FROM `user` WHERE id = ?";
-        Boolean delete = Sql.sql().delete(sql,1);
+        Boolean delete = Sql.sql().delete(sql, 1);
         System.out.println(delete);
     }
 
@@ -194,7 +253,7 @@ class UserTest {
     void deleteBatch() {
         //批量删除
         //where条件删除
-        Db.use().del()
+//        Db.use().del()
     }
 
     @Test

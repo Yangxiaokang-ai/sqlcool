@@ -81,8 +81,8 @@ public enum SqlLog {
         StringBuilder sb = new StringBuilder();
         for (String sql : sqls) {
             sql = sql.trim();
-            if(!sql.endsWith(";")){
-                sql = sql +";\n";
+            if (!sql.endsWith(";")) {
+                sql = sql + ";\n";
             }
             sb.append(sql);
         }
@@ -111,9 +111,9 @@ public enum SqlLog {
     public void log(String sql, Object paramValues) {
         if (this.showSql) {
             String logSql = this.formatSql ? SqlFormatter.format(sql) : sql;
-            //替换?为{}
-            logSql = logSql.replaceAll("\\?", "{}");
             if (this.showParams && ArrayUtil.isArray(paramValues)) {
+                //替换?为{}
+                logSql = logSql.replaceAll("\\?", "{}");
                 Object[] params = (Object[]) paramValues;
                 //如果是字符串时，给参数拼接 单引号''
                 //示例：INSERT INTO `test`.`user` (`name`, `age`) VALUES ('测试002', 19);
@@ -123,9 +123,9 @@ public enum SqlLog {
                         params[i] = "'" + param + "'";
                     }
                 }
-                log.log(this.level, "\n[执行SQL] : " + logSql, params);
+                log.log(this.level, "\n[SQL] : " + logSql, params);
             } else {
-                log.log(this.level, "\n[执行SQL] : " + logSql);
+                log.log(this.level, "\n[SQL] : " + logSql);
             }
         }
     }

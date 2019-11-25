@@ -13,6 +13,7 @@ import com.github.dakuohao.factory.DbFatory;
 import com.github.dakuohao.util.ExceptionUtil;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -62,23 +63,22 @@ public interface DataBase {
         return result;
     }
 
-//    /**
-//     * 批量执行执行修改sql
-//     *
-//     * @param sql         sql语句
-//     * @param paramsBatch 批量sql参数
-//     * @return int[]，每个SQL执行影响的行数
-    //todo hutool此处有bug  后期修改
-//     */
-//    default int[] executeUpdateBatch(String sql, Object[]... paramsBatch) {
-//        int[] result = null;
-//        try {
-//            result = getDb().executeBatch(sql, paramsBatch);
-//        } catch (SQLException e) {
-//            ExceptionUtil.throwDbRuntimeException(e, "执行executeUpdate时发生异常");
-//        }
-//        return result;
-//    }
+    /**
+     * 批量执行执行修改sql
+     *
+     * @param sql         sql语句
+     * @param paramsBatch 批量sql参数
+     * @return int[]，每个SQL执行影响的行数
+     */
+    default int[] executeUpdateBatch(String sql, Object[]... paramsBatch) {
+        int[] result = null;
+        try {
+            result = getDb().executeBatch(sql, paramsBatch);
+        } catch (SQLException e) {
+            ExceptionUtil.throwDbRuntimeException(e, "执行executeUpdate时发生异常");
+        }
+        return result;
+    }
 
     /**
      * 批量执行执行修改sql
@@ -105,7 +105,7 @@ public interface DataBase {
      * @param params 参数
      * @return 插入成功返回true，否则返回false
      */
-    default Boolean insert(String sql, Object... params) {
+    default Boolean insertBatch(String sql, Object... params) {
         return executeUpdate(sql, params) > 0;
     }
 
@@ -173,36 +173,59 @@ public interface DataBase {
     }
 
     /**
-     * 批量插入数据，本质是jdbc的批次插入，效率快
-     * 需要注意的是，批量插入每一条数据结构必须一致。批量插入数据时会获取第一条数据的字段结构，之后的数据会按照这个格式插入。<br>
-     * 也就是说假如第一条数据只有2个字段，后边数据多于这两个字段的部分将被抛弃。
+     * 批量插入数据，一条一条的循环插入，速度慢
      * 会自动生成主键，并设置id值
      *
-     * @param entitys 多个实体对象
+     * @param list 多个实体对象
      * @return 插入成功返回true，否则返回false
      */
     @SuppressWarnings("unchecked")
-    default Boolean insert(List entitys) {
-        if (entitys.isEmpty()) {
-            ExceptionUtil.throwDbRuntimeException("批量插入，数据不能为空");
-        }
-        Object o = entitys.get(0);
-        List<Entity> list;
+    default Boolean insert(List list) {
+        transaction(parameter -> {
+            checkList(list);
+            Object o = list.get(0);
+            if (o instanceof Entity) {
+                for (Entity entity : (List<Entity>) list) {
+                    insert(entity);
+                }
+            } else {
+                for (Object bean : list) {
+                    Method insert = bean.getClass().getMethod("insert");
+                    insert.invoke(bean);
+                }
+            }
+        });
+        return true;
+    }
+
+    /**
+     * 批量插入数据，本质是jdbc的批次插入，效率快
+     * 需要注意的是，批量插入每一条数据结构必须一致。批量插入数据时会获取第一条数据的字段结构，之后的数据会按照这个格式插入。<br>
+     * 也就是说假如第一条数据只有2个字段，后边数据多于这两个字段的部分将被抛弃。
+     *
+     * @param list 多个实体对象
+     * @return 插入成功返回true，否则返回false
+     */
+    @SuppressWarnings("unchecked")
+    default Boolean insertBatch(List list) {
+        checkList(list);
+        Object o = list.get(0);
+        List<Entity> entityList;
         //判断不是Entity类型就 beanToEntity
         if (o instanceof Entity) {
-            list = entitys;
+            entityList = list;
         } else {
-            list = new ArrayList<>(entitys.size());
+            entityList = new ArrayList<>(list.size());
             String tableName = getTableName(o.getClass());
-            for (Object bean : entitys) {
+            for (Object bean : list) {
                 Entity entity = Entity.create(tableName);
                 BeanUtil.beanToMap(bean, entity, true, true);
-                list.add(entity);
+                entityList.add(entity);
             }
         }
         int[] ids = null;
         try {
-            ids = getDb().insert(list);
+            ids = getDb().insert(entityList);
         } catch (Exception e) {
             ExceptionUtil.throwDbRuntimeException(e, "插入数据时发生异常");
         }
@@ -508,6 +531,17 @@ public interface DataBase {
         }
         if (StrUtil.isEmpty(entity.getTableName())) {
             ExceptionUtil.throwDbRuntimeException("必须指定表名");
+        }
+    }
+
+    /**
+     * 检查list
+     *
+     * @param list 参数
+     */
+    default void checkList(List list) {
+        if (list.isEmpty()) {
+            ExceptionUtil.throwDbRuntimeException("批量插入，数据不能为空");
         }
     }
 
