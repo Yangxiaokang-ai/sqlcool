@@ -1,6 +1,5 @@
-package com.github.dakuohao.entity;
+package com.github.dakuohao;
 
-import com.github.dakuohao.DataBase;
 import lombok.Data;
 
 import java.time.LocalDate;
@@ -19,7 +18,7 @@ import java.time.LocalDate;
 //类命名方式使用驼峰命名，表命名使用下划线命名，工具类会自动把驼峰命名转下划线命名，这里注意。
 // 如果数据库表名和类名不一致，使用注解来标识：@Table(value = "表名称",dataSource = "数据源名称")，
 //@Table("user")
-public class User implements DataBase {
+public class User implements ORM {
     private Integer id;
     private String name;
     private Integer age;

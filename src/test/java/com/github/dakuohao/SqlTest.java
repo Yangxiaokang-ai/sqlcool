@@ -3,7 +3,6 @@ package com.github.dakuohao;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.db.Entity;
 import cn.hutool.json.JSONUtil;
-import com.github.dakuohao.entity.User;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;

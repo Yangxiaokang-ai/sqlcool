@@ -13,7 +13,7 @@ import java.util.Map;
  * @author Peng 1029538990@qq.com
  * @version 1.0
  */
-public final class Sql implements DataBase {
+public final class Sql implements ActiveRecord {
     /**
      * sql构建
      */

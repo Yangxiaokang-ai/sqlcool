@@ -1,15 +1,16 @@
-package com.github.dakuohao.entity;
+package com.github.dakuohao;
 
+import cn.hutool.core.lang.func.VoidFunc1;
 import cn.hutool.core.util.ArrayUtil;
 import cn.hutool.db.Db;
 import cn.hutool.db.Entity;
 import cn.hutool.json.JSONUtil;
-import com.github.dakuohao.Sql;
 import org.junit.jupiter.api.Test;
 
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+
+import static cn.hutool.db.transaction.TransactionLevel.READ_UNCOMMITTED;
 
 class UserTest {
 
@@ -392,7 +393,7 @@ class UserTest {
     @Test
     void selectEntity() {
         String sql = "select * from user where id >?";
-        List<Entity> list = Sql.sql().selectEntity(sql, 30);
+        List<Entity> list = Sql.sql().select(sql, 30);
         System.out.println(JSONUtil.toJsonStr(list));
         //[SQL] : select * from user where id >30
     }
@@ -400,39 +401,86 @@ class UserTest {
     @Test
     void select() {
         String sql = "select * from user where id >?";
-        List<Entity> list = new User().selectEntity(sql, 30);
+        List<Entity> list = new User().select(sql, 30);
         System.out.println(JSONUtil.toJsonStr(list));
         //[SQL] : select * from user where id >30
     }
 
     @Test
-    void selectOneEntity(){
+    void selectOneEntity() {
         String sql = "select * from user where id =?";
-        List<Entity> list = Sql.sql().selectEntity(sql, 30);
-        System.out.println(JSONUtil.toJsonStr(list));
-        //[SQL] : select * from user where id =30
-    }
-    @Test
-    void selectOne(){
-        String sql = "select * from user where id =?";
-        List<Entity> list = new User().selectEntity(sql, 30);
+        List<Entity> list = Sql.sql().select(sql, 30);
         System.out.println(JSONUtil.toJsonStr(list));
         //[SQL] : select * from user where id =30
     }
 
     @Test
-    void selectByIdEntity(){
-        Entity entity = Sql.sql().selectByIdEntity("user", 30);
+    void selectOne() {
+        String sql = "select * from user where id =?";
+        List<Entity> list = new User().select(sql, 30);
+        System.out.println(JSONUtil.toJsonStr(list));
+        //[SQL] : select * from user where id =30
+    }
+
+    @Test
+    void selectByIdEntity() {
+        Entity entity = Sql.sql().selectById("user", 30);
         System.out.println(JSONUtil.toJsonStr(entity));
         //[SQL] : SELECT * FROM user WHERE `id`=30
     }
 
     @Test
-    void selectById(){
+    void selectById() {
         User user = new User().selectById(30);
         System.out.println(JSONUtil.toJsonStr(user));
         //[SQL] : SELECT * FROM user WHERE `id`=30
     }
 
+
+    @Test
+    void transaction() {
+        Sql.sql().transaction(parameter -> {
+            User user = new User();
+            user.setId(100);
+            user.setName("测试xxxxxxxxx");
+            user.updateById();
+            throw new RuntimeException("测试事务异常");
+            //[SQL] : UPDATE `user` SET `name` = '测试xxxxxxxxx'  WHERE `id` = 100
+            //java.sql.SQLException: java.lang.RuntimeException: 测试事务异常
+        });
+    }
+
+    //等同于上边写法 适合jdk8一下使用
+    @Test
+    void transaction1() {
+        Sql.sql().transaction(
+                new VoidFunc1<Db>() {
+                    @Override
+                    public void call(Db parameter) throws Exception {
+                        User user = new User();
+                        user.setId(100);
+                        user.setName("测试xxxxxxxxx");
+                        user.updateById();
+                        throw new RuntimeException("测试事务异常");
+                        //[SQL] : UPDATE `user` SET `name` = '测试xxxxxxxxx'  WHERE `id` = 100
+                        //java.sql.SQLException: java.lang.RuntimeException: 测试事务异常
+                    }
+                });
+    }
+
+
+    //指定事务级别
+    @Test
+    void transactionLevel() {
+        Sql.sql().transaction(READ_UNCOMMITTED, parameter -> {
+            User user = new User();
+            user.setId(100);
+            user.setName("测试xxxxxxxxx");
+            user.updateById();
+            throw new RuntimeException("测试事务异常");
+            //[SQL] : UPDATE `user` SET `name` = '测试xxxxxxxxx'  WHERE `id` = 100
+            //java.sql.SQLException: java.lang.RuntimeException: 测试事务异常
+        });
+    }
 
 }
