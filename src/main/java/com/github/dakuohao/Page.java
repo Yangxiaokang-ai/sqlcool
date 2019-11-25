@@ -46,7 +46,7 @@ public class Page {
     public Page(Integer current, Integer size, String orderBy) {
         this();
         setCurrent(current);
-        setCurrent(size);
+        setSize(size);
         setOrderBy(orderBy);
     }
 

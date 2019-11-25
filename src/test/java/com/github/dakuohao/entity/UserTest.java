@@ -245,16 +245,51 @@ class UserTest {
     void deleteById1() {
         User user = new User();
         user.setId(1);
-        user.deleteById();
+        Boolean delete = user.deleteById();
         //[执行SQL] : DELETE FROM user WHERE id =1
+        System.out.println(delete);
     }
 
     @Test
-    void deleteBatch() {
-        //批量删除
-        //where条件删除
-//        Db.use().del()
+    void deleteByIds() {
+        Boolean delete = Sql.sql().deleteByIds("user", 1, 2, 3);
+        //[SQL] : DELETE FROM user WHERE id =?
+        System.out.println(delete);
     }
+
+
+    @Test
+    void deleteByIds1() {
+        Boolean delete = new User().deleteByIds(4,5,6,7);
+        //[SQL] : DELETE FROM user WHERE id =?
+        System.out.println(delete);
+    }
+
+    @Test
+    void deleteByWhere() {
+        User user = new User();
+        user.setId(10);
+        user.setAge(60);
+        Sql where=Sql.sql("id<${id} and age <${age}")
+                .setParams(user);
+        Boolean delete = new User().delete(where);
+        //[SQL] : DELETE FROM user WHERE id<10 and age <60
+        System.out.println(delete);
+    }
+
+    @Test
+    void deleteByWhere1() {
+        User user = new User();
+        user.setId(10);
+        user.setAge(60);
+        Sql where=Sql.sql("id<${id} and age <${age}")
+                .setParams(user);
+        Boolean delete = Sql.sql().delete("user",where);
+        //[SQL] : DELETE FROM user WHERE id<10 and age <60
+        System.out.println(delete);
+    }
+
+
 
     @Test
     void setCreateTime() {

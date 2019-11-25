@@ -258,20 +258,69 @@ public interface DataBase {
     /**
      * 执行删除sql
      *
+     * @param tableName 表名
+     * @param ids       主键ids数组
+     * @return 删除成功返回true，失败返回false
+     */
+    default Boolean deleteByIds(String tableName, Object... ids) {
+        String sql = "DELETE FROM " + tableName + " WHERE id =?";
+        Object[][] params = new Object[ids.length][1];
+        for (int i = 0; i < ids.length; i++) {
+            params[i][0] = ids[i];
+        }
+        return executeUpdateBatch(sql, params) != null;
+    }
+
+    /**
+     * 执行删除sql
+     *
+     * @param ids 主键ids数组
+     * @return 删除成功返回true，失败返回false
+     */
+    default Boolean deleteByIds(Object... ids) {
+        String tableName = getTableName(this.getClass());
+        return deleteByIds(tableName, ids);
+    }
+
+    /**
+     * 执行删除sql
+     *
      * @return 删除成功返回true，失败返回false
      */
     default Boolean deleteById() {
-        boolean delete = false;
         try {
             String tableName = getTableName(this.getClass());
             Field idField = this.getClass().getDeclaredField("id");
             idField.setAccessible(true);
             Object id = idField.get(this);
-            delete = deleteById(tableName, id);
+            return deleteById(tableName, id);
         } catch (NoSuchFieldException | IllegalAccessException e) {
             ExceptionUtil.throwDbRuntimeException(e, "deleteById方法执行时异常");
         }
-        return delete;
+        return false;
+    }
+
+    /**
+     * 通过where条件删除
+     *
+     * @param tableName 表名
+     * @param where     where语句
+     * @return 删除成功返回true
+     */
+    default Boolean delete(String tableName, Sql where) {
+        String sql = "DELETE FROM " + tableName + " WHERE " + where.getSql();
+        return delete(sql, where.getParams());
+    }
+
+    /**
+     * 通过where条件删除
+     *
+     * @param where where语句
+     * @return 删除成功返回true
+     */
+    default Boolean delete(Sql where) {
+        String tableName = getTableName(this.getClass());
+        return delete(tableName, where);
     }
 
 

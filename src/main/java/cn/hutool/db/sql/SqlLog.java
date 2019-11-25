@@ -119,7 +119,9 @@ public enum SqlLog {
                 //示例：INSERT INTO `test`.`user` (`name`, `age`) VALUES ('测试002', 19);
                 for (int i = 0; i < params.length; i++) {
                     Object param = params[i];
-                    if (param instanceof CharSequence) {
+                    if (param instanceof Number) {
+                        //do nothing
+                    }else {
                         params[i] = "'" + param + "'";
                     }
                 }
