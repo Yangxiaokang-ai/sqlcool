@@ -339,21 +339,100 @@ class UserTest {
     @Test
     void insetOrUpdate() {
         Entity entity = Entity.create("user")
-                .set("id", "86")
+                .set("id", 203)
                 .set("name", "测试001")
                 .set("age", 45);
         Boolean result = Sql.sql().insertOrUpdate(entity);
         assert result;
-        //第一次执行
-        //[SQL] : SELECT COUNT(*) FROM user WHERE id ='86'
+        System.out.println(JSONUtil.toJsonStr(entity));
+        //第一次执行 不存在则执行插入
+        //[SQL] : SELECT COUNT(*) FROM user WHERE id =86
+        //[SQL] : INSERT INTO `user` (`id`, `name`, `age`) VALUES (86, '测试001', 45)
+        //{"id":203,"name":"测试001","age":45}
+
+        //第二次执行 存在则修改
+        //[SQL] : SELECT COUNT(*) FROM user WHERE id =86
+        //[SQL] : UPDATE `user` SET `name` = '测试001' , `age` = 45  WHERE `id` = 86
+        //{"name":"测试001","age":45}
+
+    }
+
+    @Test
+    void insetOrUpdate1() {
+        Entity entity = Entity.create("user")
+                .set("name", "测试001")
+                .set("age", 45);
+        Boolean result = Sql.sql().insertOrUpdate(entity);
+        assert result;
         //[SQL] : INSERT INTO `user` (`name`, `age`) VALUES ('测试001', 45)
+
+        System.out.println(JSONUtil.toJsonStr(entity));
+        //{"name":"测试001","age":45,"id":89}
     }
 
     @Test
-    void testHashCode() {
+    void insetOrUpdate2() {
+        User user = new User();
+        user.setId(100);
+        user.setName("测试");
+        user.setAge(56);
+        Boolean result = user.insertOrUpdate();
+        assert result;
+        System.out.println(JSONUtil.toJsonStr(user));
+        //第一次执行 不存在则执行插入
+        //[SQL] : SELECT COUNT(*) FROM `user` WHERE id =100
+        //[SQL] : INSERT INTO `user` (`id`, `name`, `age`) VALUES (100, '测试', 56)
+
+        //第二次执行 存在则修改
+        //[SQL] : SELECT COUNT(*) FROM `user` WHERE id =100
+        //[SQL] : UPDATE `user` SET `name` = '测试' , `age` = 56  WHERE `id` = 100
+        //{"name":"测试","id":100,"age":56}
     }
 
     @Test
-    void testToString() {
+    void selectEntity() {
+        String sql = "select * from user where id >?";
+        List<Entity> list = Sql.sql().selectEntity(sql, 30);
+        System.out.println(JSONUtil.toJsonStr(list));
+        //[SQL] : select * from user where id >30
     }
+
+    @Test
+    void select() {
+        String sql = "select * from user where id >?";
+        List<Entity> list = new User().selectEntity(sql, 30);
+        System.out.println(JSONUtil.toJsonStr(list));
+        //[SQL] : select * from user where id >30
+    }
+
+    @Test
+    void selectOneEntity(){
+        String sql = "select * from user where id =?";
+        List<Entity> list = Sql.sql().selectEntity(sql, 30);
+        System.out.println(JSONUtil.toJsonStr(list));
+        //[SQL] : select * from user where id =30
+    }
+    @Test
+    void selectOne(){
+        String sql = "select * from user where id =?";
+        List<Entity> list = new User().selectEntity(sql, 30);
+        System.out.println(JSONUtil.toJsonStr(list));
+        //[SQL] : select * from user where id =30
+    }
+
+    @Test
+    void selectByIdEntity(){
+        Entity entity = Sql.sql().selectByIdEntity("user", 30);
+        System.out.println(JSONUtil.toJsonStr(entity));
+        //[SQL] : SELECT * FROM user WHERE `id`=30
+    }
+
+    @Test
+    void selectById(){
+        User user = new User().selectById(30);
+        System.out.println(JSONUtil.toJsonStr(user));
+        //[SQL] : SELECT * FROM user WHERE `id`=30
+    }
+
+
 }

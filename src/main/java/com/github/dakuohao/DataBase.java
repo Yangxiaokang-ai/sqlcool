@@ -374,7 +374,7 @@ public interface DataBase {
     default Boolean insertOrUpdate(Entity entity) {
         transaction(parameter -> {
             checkEntity(entity);
-            Integer id = entity.getInt("id");
+            Object id = entity.get("id");
             if (id != null) {
                 String sql = "SELECT COUNT(*) FROM " + entity.getTableName() + " WHERE id =?";
                 Integer count = count(sql, id);
@@ -384,7 +384,6 @@ public interface DataBase {
                     insert(entity);
                 }
             } else {//插入数据
-                entity.remove("id");
                 insert(entity);
             }
         });
@@ -479,18 +478,17 @@ public interface DataBase {
         return null;
     }
 
-//    /**
-//     * 通过主键id查询
-//     *
-//     * @param tableName 表名
-//     * @param id        主键id
-//     * @return 实体对象Entity，默认为null
-//     */
-//    default Entity selectByIdEntity(String tableName, Object id) {
-//        String sql = "SELECT * FROM " + tableName + " WHERE `id`=?";
-//        return selectOne(sql, id);
-//    }
-
+    /**
+     * 通过主键id查询
+     *
+     * @param tableName 表名
+     * @param id        主键id
+     * @return 实体对象Entity，默认为null
+     */
+    default Entity selectByIdEntity(String tableName, Object id) {
+        String sql = "SELECT * FROM " + tableName + " WHERE `id`=?";
+        return selectOneEntity(sql, id);
+    }
 
     /**
      * 通过主键id查询
