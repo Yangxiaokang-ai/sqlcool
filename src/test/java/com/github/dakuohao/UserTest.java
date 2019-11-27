@@ -444,7 +444,7 @@ class UserTest {
             user.setId(100);
             user.setName("测试xxxxxxxxx");
             user.updateById();
-            throw new RuntimeException("测试事务异常");
+//            throw new RuntimeException("测试事务异常");
             //[SQL] : UPDATE `user` SET `name` = '测试xxxxxxxxx'  WHERE `id` = 100
             //java.sql.SQLException: java.lang.RuntimeException: 测试事务异常
         });
@@ -461,7 +461,7 @@ class UserTest {
                         user.setId(100);
                         user.setName("测试xxxxxxxxx");
                         user.updateById();
-                        throw new RuntimeException("测试事务异常");
+//                        throw new RuntimeException("测试事务异常");
                         //[SQL] : UPDATE `user` SET `name` = '测试xxxxxxxxx'  WHERE `id` = 100
                         //java.sql.SQLException: java.lang.RuntimeException: 测试事务异常
                     }
@@ -477,7 +477,7 @@ class UserTest {
             user.setId(100);
             user.setName("测试xxxxxxxxx");
             user.updateById();
-            throw new RuntimeException("测试事务异常");
+//            throw new RuntimeException("测试事务异常");
             //[SQL] : UPDATE `user` SET `name` = '测试xxxxxxxxx'  WHERE `id` = 100
             //java.sql.SQLException: java.lang.RuntimeException: 测试事务异常
         });

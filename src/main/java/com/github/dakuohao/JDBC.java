@@ -8,7 +8,6 @@ import cn.hutool.db.Db;
 import cn.hutool.db.Entity;
 import cn.hutool.db.sql.SqlLog;
 import cn.hutool.db.transaction.TransactionLevel;
-import com.github.dakuohao.factory.DbFatory;
 import com.github.dakuohao.util.ExceptionUtil;
 
 import java.lang.reflect.Method;
@@ -284,10 +283,11 @@ public interface JDBC {
      */
     default Db initDb() {
         Table table = this.getClass().getAnnotation(Table.class);
-        if (table != null && StrUtil.isNotEmpty(table.dataSource())) {
-            return DbFatory.get(table.dataSource());
+        String group = null;
+        if (table != null && StrUtil.isNotEmpty(group)) {
+            group = table.dataSource();
         }
-        return DbFatory.get();
+        return Db.use(group);
     }
 
     /**
