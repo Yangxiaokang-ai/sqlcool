@@ -25,7 +25,7 @@ public interface ORM extends JDBC {
      */
     default Boolean insert() {
         //object to bean
-        String tableName = getTableName();
+        String tableName = tableName();
         Entity entity = new Entity(tableName);
         //转化为下划线字段  忽略null值的字段
         bean2Entity(entity, this);
@@ -50,7 +50,7 @@ public interface ORM extends JDBC {
      */
     default Boolean deleteById() {
         try {
-            String tableName = getTableName();
+            String tableName = tableName();
             Field idField = this.getClass().getDeclaredField("id");
             idField.setAccessible(true);
             Object id = idField.get(this);
@@ -68,7 +68,7 @@ public interface ORM extends JDBC {
      * @return 删除成功返回true，失败返回false
      */
     default Boolean deleteByIds(Object... ids) {
-        String tableName = getTableName();
+        String tableName = tableName();
         return Sql.sql().deleteByIds(tableName, ids);
     }
 
@@ -79,7 +79,7 @@ public interface ORM extends JDBC {
      * @return 修改成功返回true，否则返回false
      */
     default Boolean updateById() {
-        Entity entity = Entity.create(getTableName());
+        Entity entity = Entity.create(tableName());
         bean2Entity(entity, this);
         return Sql.sql().updateById(entity);
     }
@@ -90,7 +90,7 @@ public interface ORM extends JDBC {
      * @return 修改成功返回true，否则返回false
      */
     default Boolean insertOrUpdate() {
-        Entity entity = Entity.create(getTableName());
+        Entity entity = Entity.create(tableName());
         bean2Entity(entity, this);
         return Sql.sql().insertOrUpdate(entity);
     }
@@ -131,7 +131,7 @@ public interface ORM extends JDBC {
      * @return 实体对象Entity，默认为null
      */
     default <T> T selectById(Object id) {
-        String tableName = getTableName();
+        String tableName = tableName();
         String sql = "SELECT * FROM " + tableName + " WHERE `id`=?";
         return selectOne(sql, id);
     }

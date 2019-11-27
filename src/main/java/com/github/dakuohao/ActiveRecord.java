@@ -30,7 +30,7 @@ public interface ActiveRecord extends JDBC {
         checkEntity(entity);
         Long id = 0L;
         try {
-            id = getDb().insertForGeneratedKey(entity);
+            id = initDb().insertForGeneratedKey(entity);
             if (id > 0) {
                 entity.set("id", id);
             }
@@ -82,7 +82,7 @@ public interface ActiveRecord extends JDBC {
         entity.remove("id");
         int update = 0;
         try {
-            update = getDb().update(entity, where);
+            update = initDb().update(entity, where);
         } catch (SQLException e) {
             ExceptionUtil.throwDbRuntimeException(e, "执行updateById时发生异常");
         }
@@ -137,7 +137,7 @@ public interface ActiveRecord extends JDBC {
     default <T> List<T> select(Class<T> tClass, String sql, Object... params) {
         List<T> select = null;
         try {
-            select = getDb().query(sql, tClass, params);
+            select = initDb().query(sql, tClass, params);
         } catch (SQLException e) {
             ExceptionUtil.throwDbRuntimeException(e, "select方法发生异常");
         }
@@ -154,7 +154,7 @@ public interface ActiveRecord extends JDBC {
     default Entity selectOne(String sql, Object... params) {
         Entity entity = null;
         try {
-            entity = getDb().queryOne(sql, params);
+            entity = initDb().queryOne(sql, params);
         } catch (SQLException e) {
             ExceptionUtil.throwDbRuntimeException(e, "查询一条数据时发生异常");
         }

@@ -36,7 +36,7 @@ public interface JDBC {
     default List<Entity> executeQuery(String sql, Object... params) {
         List<Entity> list = null;
         try {
-            list = getDb().query(sql, params);
+            list = initDb().query(sql, params);
         } catch (SQLException e) {
             ExceptionUtil.throwDbRuntimeException(e, "执行executeQuery时发生异常");
         }
@@ -53,7 +53,7 @@ public interface JDBC {
     default int executeUpdate(String sql, Object... params) {
         int result = 0;
         try {
-            result = getDb().execute(sql, params);
+            result = initDb().execute(sql, params);
         } catch (SQLException e) {
             ExceptionUtil.throwDbRuntimeException(e, "执行executeUpdate时发生异常");
         }
@@ -69,7 +69,7 @@ public interface JDBC {
     default int[] executeUpdateBatch(String... sql) {
         int[] result = null;
         try {
-            result = getDb().executeBatch(sql);
+            result = initDb().executeBatch(sql);
             //todo hutool没做日志  这里补充
             SqlLog.INSTANCE.logForBatch(sql);
         } catch (SQLException e) {
@@ -88,7 +88,7 @@ public interface JDBC {
     default int[] executeUpdateBatch(String sql, Object[]... paramsBatch) {
         int[] result = null;
         try {
-            result = getDb().executeBatch(sql, paramsBatch);
+            result = initDb().executeBatch(sql, paramsBatch);
         } catch (SQLException e) {
             ExceptionUtil.throwDbRuntimeException(e, "执行executeUpdate时发生异常");
         }
@@ -116,7 +116,7 @@ public interface JDBC {
     default Long insertForGeneratedKey(String sql, Object... params) {
         Long id = 0L;
         try {
-            id = getDb().executeForGeneratedKey(sql, params);
+            id = initDb().executeForGeneratedKey(sql, params);
         } catch (SQLException e) {
             ExceptionUtil.throwDbRuntimeException(e, "执行executeForGeneratedKey方法时异常");
         }
@@ -132,7 +132,7 @@ public interface JDBC {
      */
     default void transaction(TransactionLevel transactionLevel, VoidFunc1<Db> func) {
         try {
-            getDb().tx(transactionLevel, func);
+            initDb().tx(transactionLevel, func);
         } catch (SQLException e) {
             ExceptionUtil.throwDbRuntimeException(e, "事务执行时发生异常");
         }
@@ -192,7 +192,7 @@ public interface JDBC {
             entityList = list;
         } else {
             entityList = new ArrayList<>(list.size());
-            String tableName = getTableName(o.getClass());
+            String tableName = tableName(o.getClass());
             for (Object bean : list) {
                 Entity entity = Entity.create(tableName);
                 bean2Entity(entity, bean);
@@ -201,7 +201,7 @@ public interface JDBC {
         }
         int[] ids = null;
         try {
-            ids = getDb().insert(entityList);
+            ids = initDb().insert(entityList);
         } catch (Exception e) {
             ExceptionUtil.throwDbRuntimeException(e, "插入数据时发生异常");
         }
@@ -267,7 +267,7 @@ public interface JDBC {
     default Integer count(String sql, Object... params) {
         Number number = 0;
         try {
-            number = getDb().queryNumber(sql, params);
+            number = initDb().queryNumber(sql, params);
         } catch (SQLException e) {
             ExceptionUtil.throwDbRuntimeException(e, "count方法异常");
         }
@@ -282,7 +282,7 @@ public interface JDBC {
      * @return Db
      * @see Db
      */
-    default Db getDb() {
+    default Db initDb() {
         Table table = this.getClass().getAnnotation(Table.class);
         if (table != null && StrUtil.isNotEmpty(table.dataSource())) {
             return DbFatory.get(table.dataSource());
@@ -321,8 +321,8 @@ public interface JDBC {
      *
      * @return String
      */
-    default String getTableName() {
-        return getTableName(this.getClass());
+    default String tableName() {
+        return tableName(this.getClass());
     }
 
     /**
@@ -332,7 +332,7 @@ public interface JDBC {
      * @param aClass 类
      * @return String
      */
-    default String getTableName(Class aClass) {
+    default String tableName(Class aClass) {
         Table table = (Table) aClass.getAnnotation(Table.class);
         if (table != null && StrUtil.isNotBlank(table.value())) {
             return toUnderlineCase(table.value());
