@@ -103,16 +103,16 @@ public final class Sql implements ActiveRecord {
         for (Map.Entry<String, Object> entry : entity.entrySet()) {
             String key = entry.getKey();
             Object value = entry.getValue();
-            //替换 变量 ${xxx} 替换为? 预编译sql
-            String flag = "${" + key + "}";
+            //替换 变量 #{xxx} 替换为? 预编译sql
+            String flag = "#{" + key + "}";
             while (sql.contains(flag)) {
                 sql = sql.replace(flag, "?");
                 paramsList.add(value);
             }
             params = paramsList.toArray();
 
-            //替换 变量 #{xxx}  直接拼接
-            String str = "#{" + key + "}";
+            //替换 变量 ${xxx}  直接拼接
+            String str = "${" + key + "}";
             while (sql.contains(str)) {
                 if (value instanceof CharSequence) {
                     sql = sql.replace(str, "'" + value + "'");
